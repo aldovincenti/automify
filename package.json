@@ -1,0 +1,74 @@
+{
+  "name": "automify",
+  "version": "0.1.0",
+  "description": "AI automation for Browser, CLI, and Desktop.",
+  "homepage": "https://github.com/aldovincenti/automify#readme",
+  "bugs": {
+    "url": "https://github.com/aldovincenti/automify/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aldovincenti/automify.git"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./zod": {
+      "types": "./src/zod.d.ts",
+      "import": "./src/zod.js"
+    }
+  },
+  "files": [
+    "src",
+    "scripts",
+    "examples",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/install-browser.js",
+    "install:desktop": "node scripts/install-desktop.js",
+    "docs:arguments": "node scripts/generate-argument-reference.js",
+    "test": "node --test test/*.test.js",
+    "test:e2e": "node --test test/e2e/*.e2e.test.js",
+    "test:live": "RUN_OPENAI_E2E=1 node --test test/e2e/live-openai.e2e.test.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "jimp": "^0.22.10",
+    "playwright": ">=1.40.0"
+  },
+  "peerDependencies": {
+    "zod": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "keywords": [
+    "automation",
+    "computer-use",
+    "browser",
+    "cli",
+    "desktop",
+    "playwright",
+    "openai",
+    "responses"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^3.8.3"
+  }
+}

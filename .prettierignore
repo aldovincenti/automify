@@ -1,0 +1,5 @@
+node_modules
+.automify-desktop
+coverage
+dist
+docs

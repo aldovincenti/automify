@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Automify Demo - Add a Person</title>
+    <meta
+      name="description"
+      content="A small Automify browser automation demo for adding a person and reading back the generated record ID."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="docs-hero">
+      <nav class="nav" aria-label="Main navigation">
+        <a href="./index.html">Home</a>
+        <a href="./documentation.html">Documentation</a>
+        <a href="https://github.com/aldovincenti/automify">GitHub</a>
+      </nav>
+
+      <div class="docs-hero-copy">
+        <p class="eyebrow">Browser automation demo</p>
+        <h1>Add a person.</h1>
+        <p class="sublede">
+          Submit first and last name, then read back the generated record ID and saved values.
+        </p>
+      </div>
+    </header>
+
+    <main class="demo-layout">
+      <section class="demo-panel" aria-labelledby="demo-form-title">
+        <p class="section-kicker">Input</p>
+        <h2 id="demo-form-title">Person details</h2>
+        <form class="demo-form" id="person-form">
+          <label for="first-name">
+            First name
+            <input id="first-name" name="firstName" autocomplete="given-name" required />
+          </label>
+          <label for="last-name">
+            Last name
+            <input id="last-name" name="lastName" autocomplete="family-name" required />
+          </label>
+          <button class="button-link button-link-acid demo-submit" type="submit">Add person</button>
+        </form>
+      </section>
+
+      <section class="demo-panel" aria-labelledby="demo-result-title">
+        <p class="section-kicker">Result</p>
+        <h2 id="demo-result-title">Saved record</h2>
+        <div class="demo-empty" id="empty-state">No person has been added yet.</div>
+        <dl class="record-summary" id="record-summary" hidden>
+          <div>
+            <dt>ID</dt>
+            <dd id="record-id" data-field="id"></dd>
+          </div>
+          <div>
+            <dt>First name</dt>
+            <dd id="record-first-name" data-field="firstName"></dd>
+          </div>
+          <div>
+            <dt>Last name</dt>
+            <dd id="record-last-name" data-field="lastName"></dd>
+          </div>
+        </dl>
+        <pre class="record-json" id="latest-record-json" aria-label="Latest saved record JSON" data-testid="latest-record-json" hidden>{}</pre>
+      </section>
+
+      <section class="demo-panel demo-history" aria-labelledby="demo-history-title">
+        <p class="section-kicker">Records</p>
+        <h2 id="demo-history-title">Added people</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>First name</th>
+              <th>Last name</th>
+            </tr>
+          </thead>
+          <tbody id="records-body">
+            <tr>
+              <td colspan="3">No records yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      const storageKey = "automify-demo-people";
+      const form = document.querySelector("#person-form");
+      const emptyState = document.querySelector("#empty-state");
+      const summary = document.querySelector("#record-summary");
+      const recordId = document.querySelector("#record-id");
+      const recordFirstName = document.querySelector("#record-first-name");
+      const recordLastName = document.querySelector("#record-last-name");
+      const recordJson = document.querySelector("#latest-record-json");
+      const recordsBody = document.querySelector("#records-body");
+
+      function readRecords() {
+        try {
+          return JSON.parse(window.localStorage.getItem(storageKey)) ?? [];
+        } catch {
+          return [];
+        }
+      }
+
+      function writeRecords(records) {
+        window.localStorage.setItem(storageKey, JSON.stringify(records));
+      }
+
+      function createRecordId() {
+        if (window.crypto?.randomUUID) {
+          return window.crypto.randomUUID();
+        }
+
+        return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (char) =>
+          (Number(char) ^ (window.crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (Number(char) / 4)))).toString(16)
+        );
+      }
+
+      function renderRecord(record) {
+        if (!record) {
+          emptyState.hidden = false;
+          summary.hidden = true;
+          recordJson.hidden = true;
+          recordJson.textContent = "{}";
+          return;
+        }
+
+        emptyState.hidden = true;
+        summary.hidden = false;
+        recordJson.hidden = false;
+        recordId.textContent = record.id;
+        recordFirstName.textContent = record.firstName;
+        recordLastName.textContent = record.lastName;
+        recordJson.textContent = JSON.stringify(record, null, 2);
+      }
+
+      function renderRecords(records) {
+        recordsBody.replaceChildren();
+
+        if (records.length === 0) {
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 3;
+          cell.textContent = "No records yet.";
+          row.append(cell);
+          recordsBody.append(row);
+          return;
+        }
+
+        for (const record of records) {
+          const row = document.createElement("tr");
+          row.dataset.recordId = record.id;
+          for (const [field, value] of [
+            ["id", record.id],
+            ["firstName", record.firstName],
+            ["lastName", record.lastName]
+          ]) {
+            const cell = document.createElement("td");
+            cell.dataset.field = field;
+            cell.textContent = value;
+            row.append(cell);
+          }
+          recordsBody.append(row);
+        }
+      }
+
+      const records = readRecords();
+      renderRecords(records);
+      renderRecord(records.at(-1));
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+        const currentRecords = readRecords();
+        const record = {
+          id: createRecordId(),
+          firstName: String(formData.get("firstName") ?? "").trim(),
+          lastName: String(formData.get("lastName") ?? "").trim()
+        };
+
+        if (!record.firstName || !record.lastName) return;
+
+        const nextRecords = [...currentRecords, record];
+        writeRecords(nextRecords);
+        renderRecords(nextRecords);
+        renderRecord(record);
+        form.reset();
+        document.querySelector("#first-name").focus();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Automify Documentation</title>
+    <meta
+      name="description"
+      content="Detailed Automify documentation for browser, CLI, Docker CLI, and desktop automation with providers, structured outputs, shared files, callbacks, defaults, and safety controls."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="docs-page">
+    <header class="docs-hero">
+      <nav class="nav" aria-label="Documentation navigation">
+        <a href="./index.html">Home</a>
+        <a href="#install">Install</a>
+        <a href="#providers">Models</a>
+        <a href="./demo.html">Demo</a>
+        <a href="#browser">Browser</a>
+        <a href="#cli">CLI</a>
+        <a href="#desktop">Desktop</a>
+        <a href="#adapters">Adapters</a>
+      </nav>
+
+      <div class="docs-hero-copy">
+        <p class="eyebrow">Automify documentation</p>
+        <h1>Build AI automation that can run in a browser, a shell, a container, or a desktop.</h1>
+        <p class="lede">
+          Start with a provider, create the surface you need, pass task data, and get back status, steps, screenshots,
+          text, or structured JSON.
+        </p>
+      </div>
+    </header>
+
+    <main class="docs-layout">
+      <aside class="toc" aria-label="Documentation table of contents">
+        <strong>On this page</strong>
+        <a href="#install">Install</a>
+        <a href="#core">Core idea</a>
+        <a href="#arguments">Argument shape</a>
+        <a href="#environments">Environments</a>
+        <a href="#defaults">Defaults</a>
+        <a href="#production-checklist">Production checklist</a>
+        <a href="#providers">Providers</a>
+        <a href="#status">Execution status</a>
+        <a href="#structured-output">Structured output</a>
+        <a href="#anthropic">Anthropic computer use</a>
+        <a href="#browser">Browser automation</a>
+        <a href="#cli">CLI automation</a>
+        <a href="#desktop">Desktop automation</a>
+        <a href="#files">Files and shared folders</a>
+        <a href="#input">Passing input</a>
+        <a href="#completion">Completion callbacks</a>
+        <a href="#adapters">Custom adapters</a>
+        <a href="#safety">Safety</a>
+        <a href="#observability">Observability</a>
+        <a href="#api">API map</a>
+      </aside>
+
+      <article class="doc">
+        <section id="install">
+          <p class="section-kicker">Start</p>
+          <h2>Install</h2>
+          <div class="doc-callout">
+            <strong>Most projects only need three decisions.</strong>
+            <p>Pick a provider, choose a surface, and decide which guardrails should apply before the model can act.</p>
+          </div>
+          <div class="doc-quick-links" aria-label="Common documentation paths">
+            <a href="#browser"><strong>Web workflow</strong><span>Automate forms, dashboards, and portals.</span></a>
+            <a href="#cli"
+              ><strong>Terminal workflow</strong><span>Run repo checks and scripts with command policies.</span></a
+            >
+            <a href="#desktop"
+              ><strong>Desktop workflow</strong><span>Control local apps or sandboxed Linux desktops.</span></a
+            >
+          </div>
+          <div class="install-shell">
+            <div class="install-shell-bar">
+              <span>Terminal</span>
+              <button class="copy-button" type="button" data-copy="npm install automify">Copy</button>
+            </div>
+            <div class="install-shell-line">
+              <span class="prompt">&gt;</span>
+              <code>npm install automify</code>
+            </div>
+          </div>
+          <p>
+            Automify requires Node.js 18.18 or newer. Playwright is a dependency because browser automation is a
+            built-in surface, and the package postinstall step installs Chromium automatically.
+          </p>
+          <pre><code>AUTOMIFY_SKIP_BROWSER_INSTALL=1 npm install automify</code></pre>
+          <p>
+            Use the environment variable above when your CI image or deployment environment manages browsers separately.
+          </p>
+          <p>
+            Zod support is optional. Install Zod only when you want to define structured output with Zod schemas:
+          </p>
+          <pre><code>npm install zod</code></pre>
+          <p>
+            The main `automify` package works without Zod. The Zod helper lives behind the separate `automify/zod`
+            import and uses Zod as an optional peer dependency.
+          </p>
+        </section>
+
+        <section id="core">
+          <p class="section-kicker">Core idea</p>
+          <h2>Initialize once, then create the surface you need.</h2>
+          <pre><code>import { initAutomify } from "automify";
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const browser = await automify.browser({
+  startUrl: "https://example.com"
+});
+
+try {
+  const result = await browser.do("Find the docs page and summarize it");
+  console.log(result.text);
+} finally {
+  await browser.close();
+}</code></pre>
+          <p>
+            `initAutomify()` creates shared provider configuration and returns factory methods for browser, CLI,
+            desktop, and custom computer runs. Every surface exposes `.do(instruction, run?)`, where run data lives
+            under `data` and output/options live beside it in the same object.
+          </p>
+          <table>
+            <tbody>
+              <tr>
+                <th>Instruction</th>
+                <td>
+                  The first `.do()` argument. Tell the model what outcome you want, not a brittle click-by-click script.
+                </td>
+              </tr>
+              <tr>
+                <th>`data`</th>
+                <td>
+                  Structured input for the run: records, form values, command names, search queries, customer IDs, or
+                  other app context.
+                </td>
+              </tr>
+              <tr>
+                <th>`output`</th>
+                <td>Optional response shape. Use `jsonOutput()` when application code should consume the result.</td>
+              </tr>
+              <tr>
+                <th>Guardrails</th>
+                <td>Domain rules, command rules, safety callbacks, screenshot redaction, and max-step limits.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="arguments">
+          <p class="section-kicker">Arguments</p>
+          <h2>Use grouped options for new code.</h2>
+          <p>
+            `.do()` accepts a single run object. Prefer grouped options so input, evaluation files, screenshots,
+            safety, hooks, limits, and CLI command policy stay easy to scan.
+          </p>
+          <pre><code>await automify.cli({
+  command: {
+    cwd: process.cwd(),
+    allow: ["npm test", "npm run build"],
+    block: [/^rm\b/]
+  }
+}).do("Run tests and summarize failures", {
+  data: { packageName: "automify" },
+  evaluate: [{ path: "/tmp/screenshot.png", detail: "high" }],
+  output: jsonOutput("test_report", { passed: "boolean", summary: "string" }),
+  limits: { steps: 20 },
+  screenshots: {
+    final: "/tmp/automify-final.png",
+    actions: "/tmp/automify-actions"
+  },
+  screenshot: {
+    detail: "high",
+    maxWidth: 1600
+  },
+  safety: {
+    domains: ["example.com"],
+    onCheck: async ({ checks }) =&gt; checks.every((check) =&gt; check.code !== "external_form_submit")
+  },
+  hooks: {
+    step: (event) =&gt; console.log(event.phase),
+    complete: ({ result }) =&gt; console.log(result.status)
+  }
+});</code></pre>
+          <p>
+            The grouped names map to the flat names: `evaluate` maps to `filesToEvaluate`, `limits.steps` to
+            `maxSteps`, `screenshots.final` to `finalScreenshot`, `command.allow` to `allowedCommands`, and
+            `safety.domains` to `allowedDomains`.
+          </p>
+          <p>
+            Adapter factories use the same grouped shape. Browser uses `startUrl`, `viewport`, `launch`, `context`,
+            and `navigation`; CLI uses `command`; Docker-backed adapters use `container`, `desktop`, `shared`, and
+            `sharedFiles`; local desktop uses `viewport`, `mouse`, `keyboard`, `calibration`, and `virtualDisplay`.
+            Automify validates adapter option names at runtime and suggests likely fixes. Docker-backed APIs are named
+            explicitly; older virtual aliases are still exported for existing code. The generated Markdown reference is
+            `docs/argument-reference.md`.
+          </p>
+          <table>
+            <tbody>
+              <tr>
+                <th>Browser</th>
+                <td>`preset`, `startUrl`, `browser`, `viewport`, `launch`, `context`, `navigation`, `actionDelayMs`</td>
+              </tr>
+              <tr>
+                <th>CLI</th>
+                <td>`preset`, `command: { cwd, env, shell, timeoutMs, approval, allow, block, confirm }`</td>
+              </tr>
+              <tr>
+                <th>Docker CLI</th>
+                <td>`preset`, `container`, `workdir`, `shared`, `sharedFiles`, `command`</td>
+              </tr>
+              <tr>
+                <th>Docker computer</th>
+                <td>`preset`, `container`, `viewport`, `desktop`, `shared`, `sharedFiles`</td>
+              </tr>
+              <tr>
+                <th>Local desktop</th>
+                <td>`viewport`, `mouse`, `keyboard`, `calibration`, `virtualDisplay`</td>
+              </tr>
+              <tr>
+                <th>Docker desktop</th>
+                <td>`preset`, `container`, `viewport`, `desktop`, `shared`, `sharedFiles`</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            Presets are optional shortcuts: `repo` for CLI/Docker CLI, `browser-review` for browser inspection, and
+            `desktop-review` for a review-friendly Docker desktop viewport and settle timing.
+          </p>
+        </section>
+
+        <section id="status">
+          <p class="section-kicker">Status</p>
+          <h2>Know whether the automation loop succeeded.</h2>
+          <p>
+            A resolved run means all requested model tool calls were executed without provider, adapter, safety, policy,
+            or max-step errors. Automify marks that with `ok: true` and `status: "succeeded"`.
+          </p>
+          <pre><code>const run = await browser.do("Submit the lead form");
+
+if (run.ok) {
+  console.log("Actions executed:", run.steps.length);
+}</code></pre>
+          <p>
+            If a click, command, domain rule, safety check, model request, or adapter action fails, `.do()` rejects
+            instead of returning a successful result.
+          </p>
+        </section>
+
+        <section id="environments">
+          <p class="section-kicker">Environment</p>
+          <h2>Environment describes the surface the model is operating.</h2>
+          <p>
+            Browser runs default to `environment: "browser"`. Desktop adapters usually provide values such as `mac`,
+            `windows`, or `linux`. The environment is passed through the computer tool payload so the model knows what
+            kind of system it is controlling.
+          </p>
+          <p>Run `npm run install:desktop` manually before using the nut.js desktop adapter.</p>
+          <pre><code>npm run install:desktop
+
+// Then in your Node.js code:
+const browser = await automify.browser({
+  startUrl: "https://example.com",
+  environment: "browser"
+});
+
+const desktop = await automify.localComputer();</code></pre>
+          <p>
+            You can use any string if your adapter targets a different surface, but the built-in browser and desktop
+            flows are designed around browser, macOS, Windows, and Linux-style environments.
+          </p>
+        </section>
+
+        <section id="defaults">
+          <p class="section-kicker">Defaults</p>
+          <h2>Runtime defaults are optimized for practical automation.</h2>
+          <table>
+            <tbody>
+              <tr>
+                <th>`provider` / `model`</th>
+                <td>No default. `provider` is required in `initAutomify()`.</td>
+              </tr>
+              <tr>
+                <th>Browser `headless`</th>
+                <td>`true`</td>
+              </tr>
+              <tr>
+                <th>Browser `safety.domains`</th>
+                <td>All domains unless you set an allowlist.</td>
+              </tr>
+              <tr>
+                <th>Browser/Desktop `limits.steps`</th>
+                <td>`1000`</td>
+              </tr>
+              <tr>
+                <th>CLI `limits.steps`</th>
+                <td>`1000`</td>
+              </tr>
+              <tr>
+                <th>CLI `approval`</th>
+                <td>`"never"`</td>
+              </tr>
+              <tr>
+                <th>CLI command policy</th>
+                <td>All commands allowed unless you configure `command.allow` or `command.block`.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="production-checklist">
+          <p class="section-kicker">Production checklist</p>
+          <h2>Before you let an automation touch real accounts.</h2>
+          <table>
+            <tbody>
+              <tr>
+                <th>Scope the workspace</th>
+                <td>
+                  Use dedicated accounts, test tenants, narrow browser domains, and minimal filesystem or Docker access.
+                </td>
+              </tr>
+              <tr>
+                <th>Prefer structured data</th>
+                <td>Use `data` for inputs and `jsonOutput()` for outputs so your application is not parsing prose.</td>
+              </tr>
+              <tr>
+                <th>Record what happened</th>
+                <td>
+                  Attach `onStep`, `onComplete`, final screenshots, and `trace: true` for workflows that need
+                  auditability.
+                </td>
+              </tr>
+              <tr>
+                <th>Add human gates</th>
+                <td>
+                  Use CLI approval, safety callbacks, or application-level review before destructive or externally
+                  visible actions.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="providers">
+          <p class="section-kicker">Providers</p>
+          <h2>Choose a provider and keep the same surface API.</h2>
+          <div class="doc-grid">
+            <div>
+              <h3>OpenAI</h3>
+              <pre><code>const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});</code></pre>
+            </div>
+            <div>
+              <h3>Anthropic</h3>
+              <pre><code>const automify = initAutomify({
+  provider: {
+    type: "anthropic",
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    model: "claude-sonnet-4-20250514"
+  }
+});</code></pre>
+            </div>
+          </div>
+          <p>
+            Use `provider.type: "custom"` for another vendor, a model gateway, internal routing, mocks, or a provider
+            release that Automify does not support directly yet.
+          </p>
+          <p>
+            `provider` is required in `initAutomify()`. Keep `apiKey` and `model` inside the provider object so there is
+            no ambiguity about which provider owns the model string. Use direct factories such as `createAutomify()`
+            only when you need the lower-level client API.
+          </p>
+        </section>
+
+        <section id="structured-output">
+          <p class="section-kicker">Structured output</p>
+          <h2>Use JSON for application data.</h2>
+          <p>
+            `.do()` returns run metadata plus the raw provider response. That is useful for tracing, steps, and
+            callbacks, but your actual business data should usually come from structured model output.
+          </p>
+          <p>
+            Ask for the exact shape you want back. `jsonOutput()` expands the compact field map into a strict JSON
+            schema-style output configuration.
+          </p>
+          <pre><code>const run = await browser.do(
+  "Extract the support email.",
+  {
+    output: jsonOutput("support_contact", { email: "string" })
+  }
+);</code></pre>
+          <pre><code>console.log(run.ok, run.parsed.email);</code></pre>
+          <h3>Compact shape</h3>
+          <p>The compact form is designed for the common case: a flat object where every listed field is required.</p>
+          <pre><code>jsonOutput("created_lead", {
+  recordId: "string",
+  portalUrl: "string"
+})</code></pre>
+          <p>
+            That expands to a strict object schema with `recordId` and `portalUrl` in `required`, and
+            `additionalProperties: false`.
+          </p>
+          <h3>Optional fields</h3>
+          <p>
+            Compact fields are required by default. For optional fields and richer validation, pass full JSON Schema.
+          </p>
+          <pre><code>const run = await browser.do(
+  "Create the lead.",
+  {
+    output: jsonOutput("created_lead", {
+      type: "object",
+      properties: {
+        recordId: { type: "string" },
+        note: { type: "string" }
+      },
+      required: ["recordId"],
+      additionalProperties: false
+    })
+  }
+);
+
+console.log(run.parsed.recordId, run.parsed.note);</code></pre>
+          <h3>Zod schemas</h3>
+          <p>
+            Projects using Zod 4 can use the optional adapter from `automify/zod`. This is separate from the main
+            `automify` import so applications that only use `jsonOutput()` do not need to install Zod.
+          </p>
+          <pre><code>npm install zod</code></pre>
+          <pre><code>import { z } from "zod";
+import { zodOutput } from "automify/zod";
+
+const Lead = z.object({
+  id: z.string(),
+  firstName: z.string(),
+  lastName: z.string()
+});
+
+const run = await browser.do("Create the lead.", {
+  output: zodOutput("lead", Lead)
+});
+
+console.log(run.parsed.id);</code></pre>
+          <p>
+            `zodOutput()` converts the schema to JSON Schema with Zod 4's `z.toJSONSchema()` and sends that schema to
+            the model. After the model returns JSON, Automify parses the response and validates it with the original
+            Zod schema's `schema.parse()` before setting `run.parsed`.
+          </p>
+          <p>
+            Pass `{ parse: false }` to request the Zod-derived JSON Schema while skipping automatic JSON parsing and Zod
+            validation of the final response.
+          </p>
+          <h3>Richer schemas</h3>
+          <p>
+            Full JSON Schema lets you use enums, arrays, nested objects, number constraints, string formats, and
+            provider-specific schema features.
+          </p>
+          <pre><code>const run = await browser.do(
+  "Analyze the order.",
+  {
+    output: jsonOutput("order_summary", {
+      type: "object",
+      properties: {
+        priority: {
+          type: "string",
+          enum: ["low", "normal", "high"]
+        },
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              sku: { type: "string" },
+              quantity: { type: "integer", minimum: 1 }
+            },
+            required: ["sku", "quantity"],
+            additionalProperties: false
+          }
+        }
+      },
+      required: ["priority", "items"],
+      additionalProperties: false
+    })
+  }
+);</code></pre>
+          <h3>Provider compatibility</h3>
+          <table>
+            <tbody>
+              <tr>
+                <th>OpenAI</th>
+                <td>
+                  Automify sends `jsonOutput()` as the Responses API `text.format` configuration, so the provider
+                  receives the schema directly.
+                </td>
+              </tr>
+              <tr>
+                <th>Anthropic</th>
+                <td>
+                  The built-in Anthropic adapter converts the same schema into JSON-only instructions appended to the
+                  user message. `run.parsed` still works when Claude returns valid JSON.
+                </td>
+              </tr>
+              <tr>
+                <th>Custom adapters</th>
+                <td>
+                  Automify passes the requested format in `payload.text`. Your adapter can send it to a provider-native
+                  structured-output API, convert it into prompt text, or ignore it intentionally.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            The practical rule: with OpenAI, structured output is provider-enforced. With Anthropic, Automify makes the
+            request explicit and parses the JSON response, but final enforcement depends on the model following the
+            instruction.
+          </p>
+          <p>If you want plain text instead, use `run.text` or `getOutputText(run.response)`.</p>
+          <pre><code>// Helper-based fallback
+const run = await browser.do(
+  "Extract the support contact as JSON."
+);
+
+const support = parseOutputJson(run.response);
+console.log(support.email);</code></pre>
+        </section>
+
+        <section id="anthropic">
+          <p class="section-kicker">Anthropic details</p>
+          <h2>Anthropic computer-use settings stay explicit and overridable.</h2>
+          <p>
+            With the built-in Anthropic provider, a model such as `claude-sonnet-4-20250514` uses Automify's current
+            Anthropic computer-use defaults unless you override them.
+          </p>
+          <pre><code>const automify = initAutomify({
+  provider: {
+    type: "anthropic",
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    model: "claude-sonnet-4-20250514",
+    betas: ["computer-use-2025-01-24"],
+    computerToolType: "computer_20250124"
+  }
+});</code></pre>
+          <p>
+            If Anthropic updates the beta header or computer tool schema for the model you want, set both fields
+            together so the request stays internally consistent.
+          </p>
+        </section>
+
+        <section id="browser">
+          <p class="section-kicker">Browser</p>
+          <h2>Use Playwright-backed browser automation.</h2>
+          <pre><code>const browser = await automify.browser({
+  startUrl: "https://example.com",
+  viewport: { width: 1280, height: 800 },
+  headless: true,
+  safety: {
+    domains: ["example.com"]
+  }
+});
+
+try {
+  const result = await browser.do(
+    "Open the pricing page and compare the plans",
+    { data: { region: "eu" } }
+  );
+} finally {
+  await browser.close();
+}</code></pre>
+          <p>
+            Browser runs take screenshots, feed them back to the model, and execute computer actions such as click,
+            double click, move, drag, scroll, keypress, type, wait, and screenshot.
+          </p>
+        </section>
+
+        <section id="cli">
+          <p class="section-kicker">CLI</p>
+          <h2>Run model-requested commands with explicit policies.</h2>
+          <pre><code>const cli = automify.cli({
+  logFile: "/tmp/automify-cli.jsonl",
+  command: {
+    cwd: process.cwd(),
+    allow: ["npm test", "npm run build", "ls", "pwd"]
+  }
+});
+
+await cli.do("Run tests and summarize any failures");</code></pre>
+          <p>
+            CLI approval is `never` by default. Add `approval: "always"` or `confirmCommand` when you want human
+            approval or policy logic before a command executes.
+          </p>
+          <pre><code>const cli = automify.cli({
+  command: {
+    approval: "always",
+    confirm: async ({ command }) => {
+      return command.command.startsWith("npm test");
+    }
+  }
+});</code></pre>
+          <p>
+            Use `automify.dockerCli()` when commands should run in an isolated Docker container instead of the host
+            shell. It supports the same command policies and can mount a shared folder into the container.
+          </p>
+          <pre><code>import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { initAutomify, jsonOutput } from "automify";
+
+const sharedDir = await mkdtemp(join(tmpdir(), "automify-docker-cli-"));
+const dataDir = join(sharedDir, "data");
+const reportPath = join(dataDir, "report.csv");
+const summaryPath = join(dataDir, "summary.json");
+
+await mkdir(dataDir, { recursive: true });
+await writeFile(
+  reportPath,
+  "region,customer,revenue\n" +
+    "North,Ada Corp,1250\n" +
+    "South,Byron Ltd,980\n" +
+    "North,Lovelace Labs,2230\n"
+);
+await writeFile(summaryPath, "{}\n");
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const cli = automify.dockerCli({
+  logFile: "/tmp/automify-docker-cli.jsonl",
+  additionalAptPackages: ["coreutils", "nodejs"],
+  shared: { hostPath: sharedDir, containerPath: "/workspace" }
+});
+
+try {
+  const run = await cli.do("Read data/report.csv, use a Node.js script to calculate revenue by region, update data/summary.json with the result, and return the top region.", {
+    output: jsonOutput("report_summary", {
+      topRegion: "string",
+      totalRevenue: "number",
+      outputFile: "string",
+      summary: "string"
+    })
+  });
+
+  const summaryFile = JSON.parse(await readFile(summaryPath, "utf8"));
+  console.log(run.parsed, summaryFile);
+  console.log("Shared output file:", summaryPath);
+} finally {
+  await cli.close();
+}
+</code></pre>
+        </section>
+
+        <section id="desktop">
+          <p class="section-kicker">Desktop</p>
+          <h2>Desktop automation supports local and sandboxed Linux sessions.</h2>
+          <pre><code>npm run install:desktop
+
+// Then in your Node.js code:
+import { initAutomify, jsonOutput } from "automify";
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const desktop = await automify.localComputer();
+
+try {
+  const run = await desktop.do("Open the Calendar app installed on this computer, find the next event after today, and return its title and start time. Do not create or edit events.", {
+    screenshots: {
+      initial: "/tmp/automify-local-desktop-initial.png",
+      final: "/tmp/automify-local-desktop-final.png"
+    },
+    output: jsonOutput("next_event", {
+      title: "string",
+      startsAt: "string"
+    })
+  });
+
+  console.log(run.parsed);
+} finally {
+  await desktop.close();
+}</code></pre>
+          <p>
+            The desktop adapter is installed manually with `npm run install:desktop`; it is not installed by
+            postinstall. The command builds nut.js, libnut-core, and macOS permission helpers from source. The adapter
+            provides `execute(action, context)` and `screenshot(context)` for native desktop control.
+          </p>
+          <p>
+            `createLocalDesktopComputer()` is the local desktop mode. On Linux servers without `DISPLAY`, it starts an
+            in-memory Xvfb display automatically before loading nut.js. Install `xvfb` on headless hosts, or pass
+            `virtualDisplay: false` if you manage `DISPLAY` outside Automify.
+          </p>
+          <p>
+            `createLocalDesktopComputer()` takes an exclusive cross-process lock while the adapter is alive. This
+            prevents two scripts, including scripts launched from separate terminals, from controlling the same real
+            mouse, keyboard, and screen at the same time. Always call `computer.close()` in a `finally` block so
+            Automify can release the lock and stop any virtual display it started. If a process crashes, Automify
+            stores lock ownership under the system temp directory at `automify-locks`, checks whether the recorded PID
+            is still alive, and removes stale locks automatically when the owning process has exited. If the owner still
+            appears to be running, a second adapter fails with an error that includes the lock path.
+          </p>
+          <pre><code>import { initAutomify, jsonOutput } from "automify";
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const desktop = await automify.dockerComputer({
+  desktop: { startupCommand: "xterm" }
+});
+
+try {
+  const run = await desktop.do("Use the open terminal to run 'uname -a', then return the kernel name and machine architecture shown on screen.", {
+    screenshots: {
+      initial: "/tmp/automify-docker-desktop-initial.png",
+      final: "/tmp/automify-docker-desktop-final.png"
+    },
+    output: jsonOutput("system_info", {
+      kernelName: "string",
+      machine: "string",
+      summary: "string"
+    })
+  });
+
+  console.log(run.parsed);
+} finally {
+  await desktop.close();
+}</code></pre>
+          <p>
+            `createDockerDesktopComputer()` creates a Docker-backed Linux desktop. By default it creates a fresh
+            container from the public `debian:bookworm-slim` image, keeps Docker networking enabled, installs a minimal
+            desktop package set with apt on startup, and runs Xvfb, a lightweight window manager, `xdotool` input, and
+            PNG screenshots. There is no `automify-docker-desktop:latest` image to pull by default: Automify starts
+            from Debian and prepares the desktop inside that container unless you pass a custom `image`.
+          </p>
+          <p>
+            Docker desktop requires an initial app command. Pass `startupCommand` or `desktop.startupCommand`, for
+            example `desktop.startupCommand: "xterm"`.
+          </p>
+          <p>
+            The default Debian setup installs `xvfb`, `openbox`, `xterm`, `x11-utils`, `xdotool`, `imagemagick`,
+            `scrot`, and `ca-certificates`. Browser packages are opt-in; pass `desktop.additionalAptPackages:
+            ["chromium"]` when you want Chromium installed during container startup. Pass `container.image` to use
+            another apt-based distro or a prebuilt image. When `desktop.installDependencies: false`, the image must
+            already include the required desktop tools, plus Chromium only if you plan to launch it.
+          </p>
+          <p>
+            Pass `container.network: false` or `container.network: "none"` when you want to disable Docker networking.
+            Use `desktop.packages` to replace the base package list, or `desktop.additionalAptPackages` to append packages
+            to the default list. Use `desktop.startupCommand: "xterm"` to start with a terminal, or pass
+            `desktop.additionalAptPackages: ["chromium"]` with `desktop.startupCommand: "chromium --no-sandbox"` if you
+            want Chromium open at startup.
+          </p>
+          <p>
+            Docker desktop locks are scoped to the container name. Default Docker desktop adapters use a random
+            container name, so separate calls create separate containers and can run in parallel. If you pass
+            `containerName` or `container.name`, Automify takes a cross-process lock for that exact name until
+            `desktop.close()` or `computer.close()` releases it. Two adapters with different names can run at the same
+            time; two adapters with the same name fail fast instead of racing Docker or driving the same display. The
+            same rule applies when using `existingContainer`: only one adapter should control a given existing container
+            at a time.
+          </p>
+          <p>
+            Docker desktop and Docker CLI sessions both accept `shared` and `sharedFiles`. Pass `shared` to mount a
+            host directory, or pass `sharedFiles` to copy specific host files into a temporary shared directory before
+            the run starts.
+          </p>
+          <p>
+            Pass `screenshots.initial` and/or `screenshots.final` on a `do()` call to save screenshots at the beginning
+            and end of a run. Pass `screenshots.actions: "/tmp/automify-actions"` to save a before and after PNG for
+            every browser, desktop, or custom computer action. Action screenshots are named by step and action index,
+            and each step includes the saved paths under `step.actionScreenshots`.
+          </p>
+          <pre><code>node examples/desktop-docker.js</code></pre>
+          <p>
+            On macOS, `createLocalDesktopComputer()` calibrates screenshot pixels to native mouse coordinates. For
+            unusual monitor scaling, pass `pixelScale`, `mouseScaleX`, `mouseScaleY`, `mouseOffsetX`, or `mouseOffsetY`.
+          </p>
+          <p>
+            Pass `debug: true` to log useful progress to stderr: model request phases, step/action execution, full CLI
+            command results, browser input, desktop screenshots, and Docker container setup. Pass
+            `debug: (message, details) =&gt; { ... }` to collect the same events yourself. On `automify.cli()` and
+            `automify.dockerCli()`, pass
+            `logFile: "/tmp/automify-cli.jsonl"` to append debug events as JSON Lines without enabling stderr logs.
+          </p>
+          <p>
+            For desktop speed, the nut.js adapter disables nut.js mouse and keyboard auto-delays by default. You can
+            override this with `mouseAutoDelayMs` or `keyboardAutoDelayMs` if a specific application needs slower input.
+            Screenshot uploads default to `detail: "auto"` and are resized to fit within 1440x1440 before upload when
+            the optional image pipeline is available; Automify maps model coordinates back to the original screenshot
+            space before executing actions. Pass `screenshotDetail`, `screenshotMaxWidth`, or `screenshotMaxHeight` to
+            `initAutomify()`, `createAutomify()`, or a single `do()` call when you want to tune precision, image cost,
+            and latency. Pass `trace: true` to include response/action/screenshot timings in the run result.
+          </p>
+          <p>
+            Desktop source builds are pinned to known working nut.js, libnut-core, and node-mac-permissions commits.
+            Override with `AUTOMIFY_DESKTOP_NUT_REF`, `AUTOMIFY_DESKTOP_LIBNUT_CORE_REF`, or
+            `AUTOMIFY_DESKTOP_MAC_PERMISSIONS_REF` when testing a newer upstream revision.
+          </p>
+        </section>
+
+        <section id="files">
+          <p class="section-kicker">Files</p>
+          <h2>Pass files as data or mount them into virtual environments.</h2>
+          <p>
+            Use `fileToData()` or `filesToData()` when you want file metadata, text, base64, or data URLs inside
+            `data`. Use `evaluate` on `.do()` when the model should evaluate files directly; images are sent as
+            image input and text-like files are sent as text input. Use `shared` or `sharedFiles` when the Docker CLI
+            or Docker desktop also needs filesystem access to those files.
+          </p>
+          <table>
+            <tbody>
+              <tr>
+                <th>`data`</th>
+                <td>Structured JSON values the model should follow or copy into a workflow.</td>
+              </tr>
+              <tr>
+                <th>`evaluate`</th>
+                <td>Images and text files the model should inspect directly as model input.</td>
+              </tr>
+              <tr>
+                <th>`shared` / `sharedFiles`</th>
+                <td>Host folders or files that a Docker CLI or Docker desktop must access through the container filesystem.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            Factory options define runner defaults. Per-run `.do()` options override those defaults for one run, so a CLI
+            can have a default command policy and still narrow or change it for a specific task.
+          </p>
+          <pre><code>await automify.cli().do("Evaluate this screenshot and list visible issues.", {
+  evaluate: [
+    { path: "/tmp/screenshot.png", detail: "high" }
+  ]
+});</code></pre>
+          <pre><code>import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { filesToData, initAutomify } from "automify";
+
+const sharedDir = await mkdtemp(join(tmpdir(), "automify-docker-cli-"));
+const dataDir = join(sharedDir, "data");
+const reportPath = join(dataDir, "report.csv");
+const summaryPath = join(dataDir, "summary.json");
+
+await mkdir(dataDir, { recursive: true });
+await writeFile(
+  reportPath,
+  "region,customer,revenue\n" +
+    "North,Ada Corp,1250\n" +
+    "South,Byron Ltd,980\n" +
+    "North,Lovelace Labs,2230\n"
+);
+await writeFile(summaryPath, "{}\n");
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const cli = automify.dockerCli({
+  additionalAptPackages: ["coreutils", "nodejs"],
+  shared: { hostPath: sharedDir, containerPath: "/workspace" }
+});
+
+try {
+  await cli.do("Read data/report.csv, use a Node.js script to calculate revenue by region, update data/summary.json with the result, and summarize the result.", {
+    data: {
+      files: await filesToData(reportPath, { format: "metadata" })
+    }
+  });
+  console.log(JSON.parse(await readFile(summaryPath, "utf8")));
+  console.log("Shared output file:", summaryPath);
+} finally {
+  await cli.close();
+}
+</code></pre>
+          <p>
+            `shared` mounts a host folder into the container, so files the command creates or edits under `/workspace`
+            are visible on the host after the run. `sharedFiles` is still useful when you only need to copy specific
+            inputs into a temporary shared directory before the first request.
+          </p>
+          <pre><code>const computer = await createDockerDesktopComputer({
+  desktop: { startupCommand: "xterm" },
+  shared: {
+    hostPath: "/tmp/automify-work",
+    containerPath: "/workspace"
+  }
+});
+
+console.log(computer.sharedFolder.containerPath);</code></pre>
+        </section>
+
+        <section id="input">
+          <p class="section-kicker">Input</p>
+          <h2>Pass task input the same way on every adapter.</h2>
+          <p>
+            The first `.do()` argument is the instruction. Structured values go under `data`, and adapter setup goes in
+            the factory options. The model receives both the instruction and the JSON data.
+          </p>
+          <pre><code>import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { initAutomify } from "automify";
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const sharedDir = await mkdtemp(join(tmpdir(), "automify-docker-cli-"));
+const dataDir = join(sharedDir, "data");
+const reportPath = join(dataDir, "report.csv");
+const summaryPath = join(dataDir, "summary.json");
+
+await mkdir(dataDir, { recursive: true });
+await writeFile(
+  reportPath,
+  "region,customer,revenue\n" +
+    "North,Ada Corp,1250\n" +
+    "South,Byron Ltd,980\n" +
+    "North,Lovelace Labs,2230\n"
+);
+await writeFile(summaryPath, "{}\n");
+
+// Browser
+const browser = await automify.browser({ startUrl: "https://example.com/leads" });
+await browser.do("Create the lead from data.", {
+  data: { firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" }
+});
+
+// CLI
+const cli = automify.cli({ command: { cwd: process.cwd(), allow: ["npm test"] } });
+await cli.do("Run the requested script and summarize the result.", {
+  data: { script: "npm test" }
+});
+
+// Docker CLI
+const dockerCli = automify.dockerCli({
+  additionalAptPackages: ["coreutils", "nodejs"],
+  shared: { hostPath: sharedDir, containerPath: "/workspace" }
+});
+try {
+  await dockerCli.do("Read data/report.csv, use a Node.js script to calculate revenue by region, update data/summary.json with the result, and report the top region.", {
+    data: { report: "data/report.csv" }
+  });
+  console.log(JSON.parse(await readFile(summaryPath, "utf8")));
+  console.log("Shared output file:", summaryPath);
+} finally {
+  await dockerCli.close();
+}
+
+
+// Local desktop
+const localDesktop = await automify.localComputer();
+try {
+  await localDesktop.do("Open the Calendar app installed on this computer, find the next event after today, and summarize it. Do not create or edit events.", {
+    screenshots: { final: "/tmp/local-final.png" }
+  });
+} finally {
+  await localDesktop.close();
+}
+
+// Docker desktop
+const dockerDesktop = await automify.dockerComputer({
+  desktop: {
+    startupCommand: "xterm"
+  }
+});
+try {
+  await dockerDesktop.do("Use the open terminal to run 'uname -a' and summarize the system information shown on screen.", {
+    screenshots: { final: "/tmp/docker-final.png" }
+  });
+} finally {
+  await dockerDesktop.close();
+}</code></pre>
+        </section>
+
+        <section id="completion">
+          <p class="section-kicker">Completion</p>
+          <h2>Use the Promise result, `onComplete`, or both.</h2>
+          <p>
+            Every `.do()` returns a Promise that resolves when the requested tool loop succeeds. Use that for `run.ok`,
+            `run.status`, `run.steps`, `run.text`, and optional `run.parsed`. Register `onComplete` globally, per
+            surface, or per run when your app should react to completion together with the original input data.
+          </p>
+          <pre><code>const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  },
+  onComplete: async ({ surface, data, result, response }) => {
+    await auditLog.write({
+      surface,
+      customerId: data.customer?.id,
+      status: result.status,
+      responseId: response.id
+    });
+  }
+});
+
+const result = await automify.browser({ startUrl: "https://example.com" }).do(
+  "Submit the onboarding form",
+  { data: { customer: { id: "cus_123", email: "ada@example.com" } } }
+);</code></pre>
+        </section>
+
+        <section id="adapters">
+          <p class="section-kicker">Adapters</p>
+          <h2>Custom adapters keep provider integration small and ergonomic.</h2>
+          <pre><code>import {
+  initAutomify,
+  response,
+  message,
+  computerCall,
+  runCommandCall,
+  getInputText,
+  getComputerTool,
+  testModelAdapter
+} from "automify";
+
+const automify = initAutomify({
+  provider: {
+    type: "custom",
+    model: "my-model",
+    adapter: {
+      async respond(payload, context) {
+        const text = getInputText(payload);
+
+        if (context.surface === "cli") {
+          return response({
+            id: "cli_step_1",
+            output: [runCommandCall("npm test")]
+          });
+        }
+
+        if (getComputerTool(payload)) {
+          return response({
+            id: "computer_step_1",
+            output: [computerCall({ type: "click", x: 120, y: 180 })]
+          });
+        }
+
+        return response({
+          id: "done",
+          output: [message(`Handled: ${text}`)]
+        });
+      }
+    }
+  },
+  requestOptions: {
+    temperature: 0.2,
+    metadata: { app: "ops-agent" }
+  }
+});
+
+await testModelAdapter(automify.client);</code></pre>
+          <p>
+            Adapter context includes `surface`, `phase`, `step`, and `requestOptions`. `requestOptions` is the place for
+            provider-specific request parameters like temperature, tracing IDs, routing hints, or gateway metadata.
+          </p>
+        </section>
+
+        <section id="safety">
+          <p class="section-kicker">Safety</p>
+          <h2>Use explicit guardrails in production.</h2>
+          <pre><code>const browser = await automify.browser({
+  startUrl: "https://example.com",
+  safety: {
+    domains: ["example.com"]
+  },
+  screenshot: {
+    redact: async (screenshot) => screenshot
+  }
+});
+
+await browser.do("Search the internal dashboard", {
+  safety: {
+    onCheck: async ({ checks, action }) => true
+  }
+});</code></pre>
+          <p>
+            Recommended production controls include domain allowlists, command allowlists, screenshot redaction, bounded
+            `limits.steps`, isolated accounts, and human approval for sensitive operations.
+          </p>
+          <p>
+            Treat desktop and CLI runs as privileged automation surfaces. Keep credentials scoped, prefer short-lived
+            sessions, and save screenshots only where your data policy allows it.
+          </p>
+        </section>
+
+        <section id="observability">
+          <p class="section-kicker">Observability</p>
+          <h2>Inspect requests, responses, steps, and completion.</h2>
+          <pre><code>const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  },
+  onRequest: (payload, meta) => logRequest(payload, meta),
+  onResponse: (response, meta) => logResponse(response, meta),
+  onStep: (event) => logStep(event),
+  onComplete: (event) => logCompletion(event),
+  debug: true
+});</code></pre>
+          <p>
+            Use hooks for traces, audit logs, policy decisions, action screenshots, full CLI logs, and provider
+            debugging.
+          </p>
+        </section>
+
+        <section id="api">
+          <p class="section-kicker">API map</p>
+          <h2>Primary exports</h2>
+          <table>
+            <tbody>
+              <tr>
+                <th>`initAutomify(options)`</th>
+                <td>Create shared provider configuration and surface factories.</td>
+              </tr>
+              <tr>
+                <th>`automify.browser(options)`</th>
+                <td>Create a Playwright-backed browser automation runner.</td>
+              </tr>
+              <tr>
+                <th>`automify.withBrowser(options, run)`</th>
+                <td>Open a browser for the duration of a callback and close it automatically.</td>
+              </tr>
+              <tr>
+                <th>`automify.cli(options)`</th>
+                <td>Create a command-line automation runner.</td>
+              </tr>
+              <tr>
+                <th>`automify.dockerCli(options)`</th>
+                <td>Create a Docker-backed command-line automation runner with optional shared files.</td>
+              </tr>
+              <tr>
+                <th>`automify.dockerComputer(options)`</th>
+                <td>Create a Docker-backed Linux desktop runner with a required `startupCommand`, then close its container with `close()`.</td>
+              </tr>
+              <tr>
+                <th>`automify.localComputer(options)`</th>
+                <td>Create a local desktop runner and release the desktop lock with `close()`.</td>
+              </tr>
+              <tr>
+                <th>`automify.computer(options)`</th>
+                <td>
+                  Create a runner for a custom computer adapter.
+                </td>
+              </tr>
+              <tr>
+                <th>`createLocalDesktopComputer(options)`</th>
+                <td>
+                  Create a local desktop adapter backed by locally built nut.js. On Linux without `DISPLAY`, it can
+                  start Xvfb automatically.
+                </td>
+              </tr>
+              <tr>
+                <th>`createDockerDesktopComputer(options)`</th>
+                <td>
+                  Create a Docker-backed Linux desktop sandbox with Xvfb, a window manager, `xdotool` input, and
+                  PNG screenshots. `startupCommand` or `desktop.startupCommand` is required.
+                </td>
+              </tr>
+              <tr>
+                <th>`createBrowserAutomify(options)`</th>
+                <td>Construct a browser runner directly.</td>
+              </tr>
+              <tr>
+                <th>`createCliAutomify(options)`</th>
+                <td>Construct a CLI runner directly.</td>
+              </tr>
+              <tr>
+                <th>`createDockerCliAutomify(options)`</th>
+                <td>Construct a Docker CLI runner directly.</td>
+              </tr>
+              <tr>
+                <th>`createDockerComputerAutomify(options)`</th>
+                <td>Construct a Docker desktop runner directly.</td>
+              </tr>
+              <tr>
+                <th>`fileToData(file, options)` / `filesToData(files, options)`</th>
+                <td>Convert host files into data objects for `.do()` input.</td>
+              </tr>
+              <tr>
+                <th>`fileToEvaluate(file, options)` / `filesToEvaluate(files, options)`</th>
+                <td>Convert host files into model content items for evaluation.</td>
+              </tr>
+              <tr>
+                <th>`createComputerAutomify(options)`</th>
+                <td>Construct a custom computer runner directly.</td>
+              </tr>
+              <tr>
+                <th>`createModelAdapter(adapter)`</th>
+                <td>Normalize adapter objects, factories, or `respond()` implementations.</td>
+              </tr>
+              <tr>
+                <th>`testModelAdapter(adapter)`</th>
+                <td>Validate adapter response shape with common scenarios.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </article>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <strong>Automify</strong>
+        <span>MIT licensed Node.js automation library for browser, CLI, and desktop workflows.</span>
+      </div>
+    </footer>
+    <script src="./ui.js"></script>
+  </body>
+</html>

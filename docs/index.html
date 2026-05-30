@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Automify - AI automation for browser, CLI, and desktop workflows</title>
+    <meta
+      name="description"
+      content="Automify is a Node.js library for browser, CLI, and desktop automation with built-in provider support and structured automation workflows."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="nav" aria-label="Main navigation">
+        <a href="#install">Install</a>
+        <a href="#surfaces">Examples</a>
+        <a href="#providers">Providers</a>
+        <a href="./demo.html">Demo</a>
+        <a href="./documentation.html">Documentation</a>
+        <a href="https://github.com/aldovincenti/automify">GitHub</a>
+      </nav>
+
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <div class="hero-content">
+            <p class="eyebrow">Computer use for Node.js</p>
+            <h1>Automify</h1>
+            <p class="lede">One API for AI computer use.</p>
+            <p class="sublede">Browser, CLI, Docker CLI, local desktop, and Docker desktop, with shared data and files.</p>
+            <div class="hero-links">
+              <a class="button-link button-link-acid" href="./documentation.html">Read documentation</a>
+              <a class="button-link" href="./demo.html">Try the demo</a>
+              <a class="button-link" href="https://github.com/aldovincenti/automify">GitHub</a>
+            </div>
+          </div>
+
+          <div class="hero-code" aria-label="Automify code example">
+            <div class="hero-code-bar">
+              <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="hero-code-title">browser.js</span>
+              <button
+                class="copy-button"
+                type="button"
+                data-copy='import { initAutomify, jsonOutput } from "automify";
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const browser = await automify.browser({ startUrl: "https://aldovincenti.github.io/automify/demo.html" });
+
+const run = await browser.do("Add this person and return the saved record.", {
+  data: { firstName: "Ada", lastName: "Lovelace" },
+  output: jsonOutput("person_record", { id: "string", firstName: "string", lastName: "string" })
+});
+
+console.log(run.parsed); // { id: "8f14e45f-ceea-4b2d-91e7-7c7d5f6a2c9b", firstName: "Ada", lastName: "Lovelace" }'
+              >
+                Copy
+              </button>
+            </div>
+            <pre><code>import { initAutomify, jsonOutput } from "automify";
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const browser = await automify.browser({ startUrl: "https://aldovincenti.github.io/automify/demo.html" });
+
+const run = await browser.do("Add this person and return the saved record.", {
+  data: { firstName: "Ada", lastName: "Lovelace" },
+  output: jsonOutput("person_record", { id: "string", firstName: "string", lastName: "string" })
+});
+
+console.log(run.parsed); // { id: "8f14e45f-ceea-4b2d-91e7-7c7d5f6a2c9b", firstName: "Ada", lastName: "Lovelace" }</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-actions" id="install">
+        <div class="install-shell">
+          <div class="install-shell-bar">
+            <span>Install</span>
+            <button class="copy-button" type="button" data-copy="npm install automify">Copy</button>
+          </div>
+          <div class="install-shell-line">
+            <span class="prompt">&gt;</span>
+            <code>npm install automify</code>
+          </div>
+        </div>
+        <div class="hero-note">
+          <strong>Node.js 18.18+</strong>
+          <span
+            >Chromium installs automatically. Desktop support is opt-in with <code>npm run install:desktop</code>.</span
+          >
+        </div>
+      </div>
+
+      <div class="stat-grid" aria-label="Key features">
+        <div><strong>Browser</strong><span>Control a live browser.</span></div>
+        <div><strong>CLI</strong><span>Run approved commands.</span></div>
+        <div><strong>Docker CLI</strong><span>Run commands in Docker.</span></div>
+        <div><strong>Desktop</strong><span>Control native apps.</span></div>
+        <div><strong>Docker desktop</strong><span>Launch Linux sandboxes.</span></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="band band-tight" id="surfaces">
+        <div class="section-title">
+          <p>Examples</p>
+          <h2>Choose the computer. Keep the call.</h2>
+        </div>
+
+        <div class="split interactive-surface">
+          <div class="panel-block">
+            <pre><code id="surface-example-code">import { initAutomify, jsonOutput } from "automify";
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const browser = await automify.browser({
+  startUrl: "https://aldovincenti.github.io/automify/demo.html"
+});
+
+try {
+  const run = await browser.do("Add this person and return the saved record.", {
+    data: { firstName: "Ada", lastName: "Lovelace" },
+    output: jsonOutput("person_record", {
+      id: "string",
+      firstName: "string",
+      lastName: "string"
+    })
+  });
+
+  console.log(run.parsed);
+} finally {
+  await browser.close();
+}</code></pre>
+          </div>
+
+          <div class="stack-list surface-tabs-block">
+            <div class="surface-tabs" role="tablist" aria-label="Automation surfaces">
+              <button
+                class="surface-tab is-active"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                data-surface-tab="browser"
+              >
+                Browser
+              </button>
+              <button class="surface-tab" type="button" role="tab" aria-selected="false" data-surface-tab="cli">
+                CLI
+              </button>
+              <button class="surface-tab" type="button" role="tab" aria-selected="false" data-surface-tab="dockerCli">
+                Docker CLI
+              </button>
+              <button class="surface-tab" type="button" role="tab" aria-selected="false" data-surface-tab="desktop">
+                Desktop
+              </button>
+              <button
+                class="surface-tab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                data-surface-tab="dockerDesktop"
+              >
+                Docker desktop
+              </button>
+            </div>
+
+            <article id="surface-example-copy">
+              <h3>Browser</h3>
+              <p>Control a real browser and return structured data.</p>
+              <div class="example-response">
+                <span>Example response</span>
+                <pre><code>{
+  id: "rec_ada_lovelace",
+  firstName: "Ada",
+  lastName: "Lovelace"
+}</code></pre>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="providers">
+        <div class="section-title">
+          <p>Providers</p>
+          <h2>Choose a provider. Keep the API.</h2>
+        </div>
+
+        <div class="provider-grid">
+          <article>
+            <h3>OpenAI</h3>
+            <pre><code>const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});</code></pre>
+          </article>
+
+          <article>
+            <h3>Anthropic</h3>
+            <pre><code>const automify = initAutomify({
+  provider: {
+    type: "anthropic",
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    model: "claude-sonnet-4-20250514"
+  }
+});</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section-title">
+          <p>Documentation</p>
+          <h2>Practical docs for setup, providers, output, adapters, audit trails, and logs.</h2>
+        </div>
+
+        <div class="split">
+          <a class="doc-link" href="./documentation.html">
+            <strong>Open the full documentation</strong>
+            <span>Install, providers, structured output, shared files, logging, and API reference.</span>
+          </a>
+          <a class="doc-link" href="./documentation.html#completion">
+            <strong>Open the completion callbacks guide</strong>
+            <span>Capture run status, structured output, response IDs, and audit data.</span>
+          </a>
+          <a class="doc-link" href="./documentation.html#desktop">
+            <strong>Open the Docker desktop guide</strong>
+            <span>Docker-backed Linux computer use with final and per-action screenshots.</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <strong>Automify</strong>
+        <span>MIT licensed Node.js computer-use library for browser, CLI, Docker CLI, and desktop workflows.</span>
+      </div>
+    </footer>
+    <script src="./ui.js"></script>
+  </body>
+</html>
