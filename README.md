@@ -1,12 +1,12 @@
 # Automify
 
-**Model-driven automation for browsers, terminals, and desktops.**
+**AI computer use for browser, CLI, and desktop workflows in Node.js.**
 
 [![npm version](https://img.shields.io/npm/v/automify.svg)](https://www.npmjs.com/package/automify)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.18-brightgreen.svg)](https://nodejs.org/)
 
-`Automify` lets an AI model work in real environments: web apps, terminals, native desktop apps, Docker CLI sandboxes, and Docker-backed Linux desktops.
+`Automify` is a Node.js library for AI computer use and command use across web apps, terminals, native desktops, Docker CLI sandboxes, and Docker-backed Linux desktops.
 
 Computer use surfaces:
 
