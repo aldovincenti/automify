@@ -99,6 +99,17 @@ test("e2e: desktop automify drives a custom computer adapter", async () => {
     text: "release checklist\n",
     focused: true
   });
-  assert.deepEqual(calls[0].tools, [{ type: "computer" }]);
+  assert.deepEqual(calls[0].tools, [{ type: "computer", environment: expectedDefaultComputerEnvironment() }]);
   assert.match(calls[1].input[0].output.image_url, /^data:image\/png;base64,/);
 });
+
+function expectedDefaultComputerEnvironment() {
+  switch (process.platform) {
+    case "darwin":
+      return "mac";
+    case "win32":
+      return "windows";
+    default:
+      return "ubuntu";
+  }
+}

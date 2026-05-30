@@ -39,7 +39,12 @@ test("e2e: browser automify clicks and types into a real page", async () => {
     assert.equal(submittedText, "hello from automify");
     assert.equal(stepText, "1");
     assert.equal(calls.length, 4);
-    assert.deepEqual(calls[0].tools[0], { type: "computer" });
+    assert.deepEqual(calls[0].tools[0], {
+      type: "computer",
+      environment: "browser",
+      displayWidth: 640,
+      displayHeight: 480
+    });
     assert.equal(calls[1].previous_response_id, "resp_0");
     assert.match(calls[1].input[0].output.image_url, /^data:image\/png;base64,/);
   } finally {
@@ -85,15 +90,19 @@ test("e2e: browser automify adds a person on the docs demo page", async () => {
       url: pathToFileURL(join(rootDirectory, "docs/demo.html")).href
     });
 
-    const client = scriptedClient(calls, [
-      () => clickCenter(automify.page, "#first-name"),
-      { type: "type", text: "Ada" },
-      () => clickCenter(automify.page, "#last-name"),
-      { type: "type", text: "Lovelace" },
-      () => clickCenter(automify.page, "#person-form button")
-    ], async () => {
-      return automify.page.locator("#latest-record-json").textContent();
-    });
+    const client = scriptedClient(
+      calls,
+      [
+        () => clickCenter(automify.page, "#first-name"),
+        { type: "type", text: "Ada" },
+        () => clickCenter(automify.page, "#last-name"),
+        { type: "type", text: "Lovelace" },
+        () => clickCenter(automify.page, "#person-form button")
+      ],
+      async () => {
+        return automify.page.locator("#latest-record-json").textContent();
+      }
+    );
     automify.client = client;
 
     const result = await automify.do("Add the person from data, then read the latest saved record JSON.", {

@@ -183,6 +183,7 @@ test("e2e: local desktop adapter drives the model loop with a native dependency 
       ]
     );
   } finally {
+    await computer.close();
     await rm(dir, { recursive: true, force: true });
   }
 });
