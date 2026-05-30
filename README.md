@@ -34,7 +34,7 @@ OpenAI and Anthropic models are supported, and any other model can be plugged in
 - Built-in OpenAI and Anthropic support, plus custom model adapters.
 - Practical guardrails: domain allowlists, command policies, screenshot controls, max steps, and hooks.
 
-Full docs live in [`docs/documentation.html`](docs/documentation.html). The shorter argument reference is [`docs/argument-reference.md`](docs/argument-reference.md).
+Full docs live at [aldovincenti.github.io/automify](https://aldovincenti.github.io/automify/). The shorter argument reference is [`docs/argument-reference.md`](docs/argument-reference.md).
 
 ## Install
 
