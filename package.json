@@ -1,8 +1,8 @@
 {
   "name": "automify",
   "version": "0.1.0",
-  "description": "AI automation for Browser, CLI, and Desktop.",
-  "homepage": "https://github.com/aldovincenti/automify#readme",
+  "description": "AI computer use for browser, CLI, and desktop.",
+  "homepage": "https://aldovincenti.github.io/automify",
   "bugs": {
     "url": "https://github.com/aldovincenti/automify/issues"
   },
