@@ -4,7 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/automify.svg)](https://www.npmjs.com/package/automify)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.18-brightgreen.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20.12.2-brightgreen.svg)](https://nodejs.org/)
 
 `Automify` is a Node.js library for AI computer use and command use across web apps, terminals, native desktops, Docker CLI sandboxes, and Docker-backed Linux desktops.
 
@@ -48,7 +48,7 @@ Chromium is installed by the package `postinstall` script. Skip it with:
 AUTOMIFY_SKIP_BROWSER_INSTALL=1 npm install automify
 ```
 
-Requirements: Node.js `18.18+` and a provider config. OpenAI examples use `gpt-5.5`.
+Requirements: Node.js `20.12.2+` and a provider config. OpenAI examples use `gpt-5.5`.
 
 Automify is published as an ES module package, so the examples use modern `import` syntax:
 

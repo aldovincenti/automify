@@ -715,15 +715,10 @@ async function resizeScreenshot(screenshot, target, options, automify) {
   }
 
   try {
-    const [{ createJimp }, png, resize] = await Promise.all([
-      import("@jimp/core"),
-      import("@jimp/js-png"),
-      import("@jimp/plugin-resize")
-    ]);
-    const Jimp = createJimp({ formats: [png.default], plugins: [resize.methods] });
+    const { Jimp, JimpMime } = await import("jimp");
     const image = await Jimp.read(Buffer.from(screenshot));
     image.resize({ w: target.width, h: target.height });
-    return image.getBuffer("image/png");
+    return image.getBuffer(JimpMime.png);
   } catch (error) {
     debugLog(automify.debug, "automify", "screenshot_resize_skipped", {
       reason: error?.message,

@@ -24,9 +24,7 @@ const platformPackageDir = join(nutScope, `libnut-${process.platform}`);
 const macPermissionsPackageDir = join(nutScope, "node-mac-permissions");
 
 const runtimeDependencies = [
-  "@jimp/core@1.6.1",
-  "@jimp/js-png@1.6.1",
-  "@jimp/plugin-resize@1.6.1",
+  "jimp@1.6.1",
   "node-abort-controller@3.1.1",
   "clipboardy@2.3.0",
   "bindings@1.5.0"

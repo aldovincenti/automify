@@ -46,9 +46,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@jimp/core": "^1.6.1",
-    "@jimp/js-png": "^1.6.1",
-    "@jimp/plugin-resize": "^1.6.1",
+    "jimp": "^1.6.1",
     "playwright": ">=1.40.0"
   },
   "peerDependencies": {
@@ -60,7 +58,7 @@
     }
   },
   "engines": {
-    "node": ">=18.18"
+    "node": ">=20.12.2"
   },
   "keywords": [
     "automation",
