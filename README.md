@@ -396,6 +396,27 @@ npm run test:e2e
 OPENAI_API_KEY=... npm run test:live
 ```
 
+`npm run test:live` runs `test/e2e/live-openai.e2e.test.js` with `RUN_OPENAI_E2E=1`. By default, it runs the live OpenAI CLI and Docker CLI checks and skips the browser and Docker desktop checks.
+
+Run every live test:
+
+```bash
+OPENAI_API_KEY=... \
+RUN_OPENAI_BROWSER_E2E=1 \
+RUN_OPENAI_VIRTUAL_DESKTOP_E2E=1 \
+npm run test:live
+```
+
+The equivalent direct command is:
+
+```bash
+OPENAI_API_KEY=... \
+RUN_OPENAI_E2E=1 \
+RUN_OPENAI_BROWSER_E2E=1 \
+RUN_OPENAI_VIRTUAL_DESKTOP_E2E=1 \
+node --test test/e2e/live-openai.e2e.test.js
+```
+
 ## License
 
 MIT

@@ -55,6 +55,7 @@
         <a href="#adapters">Custom adapters</a>
         <a href="#safety">Safety</a>
         <a href="#observability">Observability</a>
+        <a href="#testing">Testing</a>
         <a href="#api">API map</a>
       </aside>
 
@@ -1141,6 +1142,80 @@ await browser.do("Search the internal dashboard", {
             Use hooks for traces, audit logs, policy decisions, action screenshots, full CLI logs, and provider
             debugging.
           </p>
+        </section>
+
+        <section id="testing">
+          <p class="section-kicker">Development</p>
+          <h2>Running tests</h2>
+          <pre><code>npm test
+npm run test:e2e
+OPENAI_API_KEY=... npm run test:live</code></pre>
+          <p>
+            `npm run test:live` runs `test/e2e/live-openai.e2e.test.js` with `RUN_OPENAI_E2E=1`. By default, it runs
+            the live OpenAI CLI and Docker CLI checks and skips the browser and Docker desktop checks.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Variable</th>
+                <th>Required</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>`OPENAI_API_KEY`</th>
+                <td>Yes</td>
+                <td>OpenAI API key used by the live Responses API tests.</td>
+              </tr>
+              <tr>
+                <th>`OPENAI_MODEL`</th>
+                <td>No</td>
+                <td>Model for live tests. Defaults to `OPENAI_TEXT_MODEL`, then `gpt-5.5`.</td>
+              </tr>
+              <tr>
+                <th>`OPENAI_TEXT_MODEL`</th>
+                <td>No</td>
+                <td>Fallback model when `OPENAI_MODEL` is not set.</td>
+              </tr>
+              <tr>
+                <th>`RUN_OPENAI_E2E=1`</th>
+                <td>Yes for direct `node --test` runs</td>
+                <td>Enables the base live OpenAI tests. The `test:live` npm script sets this for you.</td>
+              </tr>
+              <tr>
+                <th>`RUN_OPENAI_BROWSER_E2E=1`</th>
+                <td>No</td>
+                <td>Also runs the live browser demo test. Requires the Playwright Chromium install from `npm install`.</td>
+              </tr>
+              <tr>
+                <th>`RUN_OPENAI_VIRTUAL_DESKTOP_E2E=1`</th>
+                <td>No</td>
+                <td>Also runs the live Docker desktop tests. Requires Docker to be running.</td>
+              </tr>
+              <tr>
+                <th>`AUTOMIFY_VIRTUAL_DESKTOP_IMAGE`</th>
+                <td>No</td>
+                <td>Optional Docker desktop base image override. Defaults to `debian:bookworm-slim`.</td>
+              </tr>
+              <tr>
+                <th>`AUTOMIFY_LIVE_LOGS=1`</th>
+                <td>No</td>
+                <td>Shows live adapter logs while the tests run.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>Run every live test through the npm script:</p>
+          <pre><code>OPENAI_API_KEY=... \
+RUN_OPENAI_BROWSER_E2E=1 \
+RUN_OPENAI_VIRTUAL_DESKTOP_E2E=1 \
+npm run test:live</code></pre>
+          <p>The equivalent direct command is:</p>
+          <pre><code>OPENAI_API_KEY=... \
+RUN_OPENAI_E2E=1 \
+RUN_OPENAI_BROWSER_E2E=1 \
+RUN_OPENAI_VIRTUAL_DESKTOP_E2E=1 \
+node --test test/e2e/live-openai.e2e.test.js</code></pre>
         </section>
 
         <section id="api">

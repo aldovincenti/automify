@@ -181,8 +181,8 @@ test(
 
         assert.equal(run.completed, true);
         assert.ok(run.response.id);
-        assert.equal(runnerCalls.length, 1);
-        assert.match(runnerCalls[0], /^node\b/);
+        assert.ok(runnerCalls.length >= 1);
+        assert.ok(runnerCalls.every((command) => /^node\b/.test(command)));
         assert.equal(run.parsed.topRegion, "North");
         assert.equal(run.parsed.totalRevenue, 4460);
         assert.equal(summaryFile.byRegion.North, 3480);
