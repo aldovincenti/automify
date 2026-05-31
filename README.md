@@ -50,6 +50,14 @@ AUTOMIFY_SKIP_BROWSER_INSTALL=1 npm install automify
 
 Requirements: Node.js `18.18+` and a provider config. OpenAI examples use `gpt-5.5`.
 
+Automify is published as an ES module package, so the examples use modern `import` syntax:
+
+```js
+import { initAutomify } from "automify";
+```
+
+Use this from an ES module project (`"type": "module"` in `package.json`) or from `.mjs` files. In CommonJS projects, use dynamic `import()` from your `require`-based files instead.
+
 Zod support is optional. Install Zod only if you want to build structured outputs from Zod schemas:
 
 ```bash
