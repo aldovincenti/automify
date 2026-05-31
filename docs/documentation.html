@@ -267,8 +267,12 @@ if (run.ok) {
             `windows`, or `linux`. The environment is passed through the computer tool payload so the model knows what
             kind of system it is controlling.
           </p>
-          <p>Run `npm run install:desktop` manually before using the nut.js desktop adapter.</p>
-          <pre><code>npm run install:desktop
+          <p>
+            Local desktop computer use is optional. Install it with the command below; it may take a while because it
+            compiles native desktop dependencies. When you use the local desktop adapter, your OS may ask for permission
+            to control the desktop.
+          </p>
+          <pre><code>npx automify-install-desktop
 
 // Then in your Node.js code:
 const browser = await automify.browser({
@@ -672,7 +676,7 @@ try {
         <section id="desktop">
           <p class="section-kicker">Desktop</p>
           <h2>Desktop automation supports local and sandboxed Linux sessions.</h2>
-          <pre><code>npm run install:desktop
+          <pre><code>npx automify-install-desktop
 
 // Then in your Node.js code:
 import { initAutomify, jsonOutput } from "automify";
@@ -704,9 +708,10 @@ try {
   await desktop.close();
 }</code></pre>
           <p>
-            The desktop adapter is installed manually with `npm run install:desktop`; it is not installed by
-            postinstall. The command builds nut.js, libnut-core, and macOS permission helpers from source. The adapter
-            provides `execute(action, context)` and `screenshot(context)` for native desktop control.
+            The desktop adapter is installed manually with `npx automify-install-desktop`; it is not installed by
+            postinstall. The command builds nut.js, libnut-core, and macOS permission helpers from source, so it can take
+            some time. Local desktop control may require OS permissions. The adapter provides `execute(action, context)`
+            and `screenshot(context)` for native desktop control.
           </p>
           <p>
             `createLocalDesktopComputer()` is the local desktop mode. On Linux servers without `DISPLAY`, it starts an

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -23,7 +24,9 @@ const platformPackageDir = join(nutScope, `libnut-${process.platform}`);
 const macPermissionsPackageDir = join(nutScope, "node-mac-permissions");
 
 const runtimeDependencies = [
-  "jimp@0.22.10",
+  "@jimp/core@1.6.1",
+  "@jimp/js-png@1.6.1",
+  "@jimp/plugin-resize@1.6.1",
   "node-abort-controller@3.1.1",
   "clipboardy@2.3.0",
   "bindings@1.5.0"
@@ -123,7 +126,7 @@ function checkBuildPrerequisites() {
   if (missing.length === 0) return;
 
   console.error(`Missing required desktop build tool(s): ${missing.join(", ")}`);
-  console.error("Install the native build prerequisites, then rerun: npm run install:desktop");
+  console.error("Install the native build prerequisites, then rerun: npx automify-install-desktop");
 
   if (process.platform === "darwin") {
     console.error("macOS: install Xcode Command Line Tools with `xcode-select --install` and install CMake.");

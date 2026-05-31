@@ -432,7 +432,7 @@ async function importNut() {
     return await import("@nut-tree/nut-js");
   } catch (error) {
     throw new AutomifyError(
-      "createLocalDesktopComputer requires the local desktop adapter dependency built from source. Install it with: npm run install:desktop",
+      "createLocalDesktopComputer requires the local desktop adapter dependency built from source. Install it with: npx automify-install-desktop",
       { cause: error }
     );
   }

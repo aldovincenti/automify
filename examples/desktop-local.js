@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 
 import { createLocalDesktopComputer, initAutomify } from "../src/index.js";
 
-// Run `npm run install:desktop` once before using createLocalDesktopComputer().
+// Run `npx automify-install-desktop` once before using createLocalDesktopComputer().
 const automify = initAutomify({
   provider: {
     type: "openai",

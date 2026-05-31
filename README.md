@@ -198,10 +198,10 @@ try {
 
 ### Desktop Computer Use
 
-Local desktop computer use is optional because OS control needs permissions:
+Local desktop computer use is optional. Install it with the command below; it may take a while because it compiles native desktop dependencies. When you use the local desktop adapter, your OS may ask for permission to control the desktop.
 
 ```bash
-npm run install:desktop
+npx automify-install-desktop
 ```
 
 ```js

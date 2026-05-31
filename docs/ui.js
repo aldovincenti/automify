@@ -142,7 +142,7 @@ try {
     title: "Desktop",
     description: "Use a local desktop through the same computer API.",
     response: `"Design review" "2026-05-29T15:00:00+02:00"`,
-    code: `npm run install:desktop
+    code: `npx automify-install-desktop
 
 // Then in your Node.js code:
 import { initAutomify, jsonOutput } from "automify";
