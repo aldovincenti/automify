@@ -69,6 +69,7 @@ runPnpm(["--filter", "@nut-tree/shared", "run", "compile"], { cwd: nutSource });
 runPnpm(["--filter", "@nut-tree/provider-interfaces", "run", "compile"], { cwd: nutSource });
 runPnpm(["--filter", "@nut-tree/default-clipboard-provider", "run", "compile"], { cwd: nutSource });
 runPnpm(["--filter", "@nut-tree/libnut", "run", "compile"], { cwd: nutSource });
+writeLibnutImportBridge();
 runPnpm(["--filter", "@nut-tree/nut-js", "run", "compile"], { cwd: nutSource });
 
 run("npm", ["install", "--no-save", ...runtimeDependencies], { cwd: root });
@@ -223,6 +224,30 @@ function patchNutWorkspace() {
     delete packageJson.peerDependencies;
     writeText(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
   }
+}
+
+function writeLibnutImportBridge() {
+  const distDir = join(nutSource, "providers", "libnut", "dist");
+  mkdirSync(distDir, { recursive: true });
+  writeText(
+    join(distDir, "import_libnut.js"),
+    `"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.libnut = void 0;
+exports.libnut = process.platform === "win32"
+  ? require("@nut-tree/libnut-win32")
+  : process.platform === "linux"
+    ? require("@nut-tree/libnut-linux")
+    : require("@nut-tree/libnut-darwin");
+`
+  );
+  writeText(
+    join(distDir, "import_libnut.d.ts"),
+    `import ln from "./libnut";
+declare const libnut: typeof ln;
+export { libnut };
+`
+  );
 }
 
 function installWorkspacePackage(source, target) {
