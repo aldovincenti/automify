@@ -66,11 +66,13 @@ patchPlatformLibnutDependency();
 
 runPnpm(["install"], { cwd: nutSource });
 runPnpm(["--filter", "@nut-tree/shared", "run", "compile"], { cwd: nutSource });
+patchNutJimpCompatibility();
 runPnpm(["--filter", "@nut-tree/provider-interfaces", "run", "compile"], { cwd: nutSource });
 runPnpm(["--filter", "@nut-tree/default-clipboard-provider", "run", "compile"], { cwd: nutSource });
 runPnpm(["--filter", "@nut-tree/libnut", "run", "compile"], { cwd: nutSource });
 writeLibnutImportBridge();
 runPnpm(["--filter", "@nut-tree/nut-js", "run", "compile"], { cwd: nutSource });
+patchNutJimpCompatibility();
 
 run("npm", ["install", "--no-save", ...runtimeDependencies], { cwd: root });
 
@@ -248,6 +250,77 @@ declare const libnut: typeof ln;
 export { libnut };
 `
   );
+}
+
+function patchNutJimpCompatibility() {
+  const sharedImageToJimpPath = join(
+    nutSource,
+    "core",
+    "shared",
+    "dist",
+    "lib",
+    "functions",
+    "imageToJimp.function.js"
+  );
+  if (existsSync(sharedImageToJimpPath)) {
+    writeText(
+      sharedImageToJimpPath,
+      `"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.imageToJimp = void 0;
+const jimp_1 = require("jimp");
+const colormode_enum_1 = require("../enums/colormode.enum");
+function imageToJimp(image) {
+    const jimpImage = new jimp_1.Jimp({
+        data: image.data,
+        width: image.width,
+        height: image.height
+    });
+    if (image.colorMode === colormode_enum_1.ColorMode.BGR) {
+        jimpImage.scan(0, 0, jimpImage.bitmap.width, jimpImage.bitmap.height, function (_, __, idx) {
+            const red = this.bitmap.data[idx];
+            this.bitmap.data[idx] = this.bitmap.data[idx + 2];
+            this.bitmap.data[idx + 2] = red;
+        });
+    }
+    return jimpImage;
+}
+exports.imageToJimp = imageToJimp;
+`
+    );
+  }
+
+  const jimpImageWriterPath = join(
+    nutSource,
+    "core",
+    "nut.js",
+    "dist",
+    "lib",
+    "provider",
+    "io",
+    "jimp-image-writer.class.js"
+  );
+  if (existsSync(jimpImageWriterPath)) {
+    writeText(
+      jimpImageWriterPath,
+      `"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const shared_1 = require("@nut-tree/shared");
+class default_1 {
+    store(parameters) {
+        return new Promise((resolve, reject) => {
+            const jimpImage = (0, shared_1.imageToJimp)(parameters.image);
+            jimpImage
+                .write(parameters.path)
+                .then((_) => resolve())
+                .catch((err) => reject(err));
+        });
+    }
+}
+exports.default = default_1;
+`
+    );
+  }
 }
 
 function installWorkspacePackage(source, target) {
