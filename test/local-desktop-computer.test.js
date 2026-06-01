@@ -55,6 +55,39 @@ test("createLocalDesktopComputer accepts grouped viewport, mouse, and keyboard o
   await computer.close();
 });
 
+test("createLocalDesktopComputer normalizes documented OS environment aliases", async () => {
+  const mac = await createLocalDesktopComputer({
+    nut: makeNut([]),
+    environment: "macOS",
+    macosDisplayInfo: false
+  });
+
+  assert.equal(mac.environment, "mac");
+
+  await mac.close();
+
+  const linux = await createLocalDesktopComputer({
+    nut: makeNut([]),
+    environment: "Fedora",
+    macosDisplayInfo: false
+  });
+
+  assert.equal(linux.environment, "linux");
+
+  await linux.close();
+});
+
+test("createLocalDesktopComputer explains unsupported local desktop environments", async () => {
+  await assert.rejects(
+    () =>
+      createLocalDesktopComputer({
+        nut: makeNut([]),
+        environment: "macOS desktop"
+      }),
+    /Unsupported local desktop environment "macOS desktop".*Use "mac" for macOS.*"linux" for Linux.*"ubuntu" is also accepted for compatibility.*Use instructions for OS-specific guidance/s
+  );
+});
+
 test("createLocalDesktopComputer prevents concurrent local desktop adapters", async () => {
   const first = await createLocalDesktopComputer({
     nut: makeNut([]),
@@ -393,6 +426,18 @@ test("captureLocalDesktopScreenshot supports public nut.js file capture API", as
   assert.equal(events[0][0], "captureFile");
   assert.equal(events[0][2], "png");
   assert.ok(events[0][3]);
+});
+
+test("captureLocalDesktopScreenshot adds OS-specific help when capture fails", async () => {
+  const nut = makeNut([]);
+  nut.screen.capture = async () => {
+    throw new Error("permission denied");
+  };
+
+  await assert.rejects(
+    () => captureLocalDesktopScreenshot({ nut, environment: "mac" }),
+    /local desktop screenshot capture failed.*Screen Recording and Accessibility permissions.*Original error: permission denied/s
+  );
 });
 
 test("createLocalDesktopComputer validates grouped option names", async () => {

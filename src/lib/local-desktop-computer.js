@@ -83,6 +83,16 @@ const LOCAL_CALIBRATION_KEYS = new Set([
   "required"
 ]);
 const LOCAL_VIRTUAL_DISPLAY_KEYS = new Set(["display", "width", "height", "depth", "command", "args", "startupMs"]);
+const LOCAL_DESKTOP_ENVIRONMENTS = new Set(["mac", "windows", "ubuntu", "linux"]);
+const LOCAL_DESKTOP_ENVIRONMENT_ALIASES = new Map([
+  ["macos", "mac"],
+  ["darwin", "mac"],
+  ["win32", "windows"],
+  ["win", "windows"],
+  ["debian", "linux"],
+  ["fedora", "linux"],
+  ["arch", "linux"]
+]);
 
 const KEY_ALIASES = new Map([
   ["alt", "LeftAlt"],
@@ -327,6 +337,7 @@ function normalizeLocalDesktopOptions(options = {}) {
   const keyboard = options.keyboard ?? {};
   const calibration = options.calibration ?? {};
   const virtualDisplay = typeof options.virtualDisplay === "object" ? options.virtualDisplay : {};
+  const environment = normalizeLocalDesktopEnvironment(options.environment);
   return {
     ...options,
     debug: options.debug ?? false,
@@ -334,6 +345,7 @@ function normalizeLocalDesktopOptions(options = {}) {
     display: typeof options.display === "object" ? undefined : options.display,
     displayWidth: options.displayWidth ?? viewport.width ?? display.width,
     displayHeight: options.displayHeight ?? viewport.height ?? display.height,
+    environment,
     pixelScale: options.pixelScale ?? display.pixelScale ?? calibration.pixelScale,
     mouseScaleX: options.mouseScaleX ?? mouse.scaleX ?? calibration.mouseScaleX,
     mouseScaleY: options.mouseScaleY ?? mouse.scaleY ?? calibration.mouseScaleY,
@@ -366,7 +378,15 @@ async function captureLocalDesktopScreenshotToFile(nut, options = {}) {
   const filename = `automify-nut-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const directory = options.screenshotPath ? undefined : tmpdir();
   const requestedPath = options.screenshotPath;
-  const capturedPath = await nut.screen.capture(requestedPath ?? filename, nut.FileType?.PNG, directory);
+  let capturedPath;
+  try {
+    capturedPath = await nut.screen.capture(requestedPath ?? filename, nut.FileType?.PNG, directory);
+  } catch (error) {
+    throw new AutomifyError(
+      `local desktop screenshot capture failed. ${localDesktopRuntimeHelp(options.environment)}${errorMessageSuffix(error)}`,
+      { cause: error }
+    );
+  }
 
   if (isByteLike(capturedPath)) return capturedPath;
   if (isImageObject(capturedPath)) return capturedPath;
@@ -432,10 +452,55 @@ async function importNut() {
     return await import("@nut-tree/nut-js");
   } catch (error) {
     throw new AutomifyError(
-      "createLocalDesktopComputer requires the local desktop adapter dependency built from source. Install it with: npx automify-install-desktop",
+      `createLocalDesktopComputer requires the local desktop adapter dependency built from source. ${localDesktopInstallHelp()} After the OS prerequisites are available, run: npx automify-install-desktop`,
       { cause: error }
     );
   }
+}
+
+function normalizeLocalDesktopEnvironment(environment) {
+  if (environment == null) return undefined;
+  if (typeof environment !== "string" || environment.trim() === "") {
+    throw new AutomifyError(
+      'local desktop environment must be "mac", "windows", or "linux". "ubuntu" is also accepted for compatibility.'
+    );
+  }
+
+  const normalized = environment.trim().toLowerCase();
+  const canonical = LOCAL_DESKTOP_ENVIRONMENT_ALIASES.get(normalized) ?? normalized;
+  if (LOCAL_DESKTOP_ENVIRONMENTS.has(canonical)) return canonical;
+
+  throw new AutomifyError(
+    `Unsupported local desktop environment ${JSON.stringify(environment)}. Use "mac" for macOS, "windows" for Windows, or "linux" for Linux. "ubuntu" is also accepted for compatibility. Use instructions for OS-specific guidance, not a custom environment value.`
+  );
+}
+
+function localDesktopInstallHelp(platform = process.platform) {
+  if (platform === "darwin") {
+    return "On macOS, install Xcode Command Line Tools with `xcode-select --install` and make sure `cmake --version` works, for example after `brew install cmake`.";
+  }
+  if (platform === "win32") {
+    return "On Windows, install Visual Studio C++ Build Tools and make sure `cmake --version` works, for example after `winget install Kitware.CMake`.";
+  }
+  if (platform === "linux") {
+    return "On Linux, install the native build tools for your distro: Debian/Ubuntu need `build-essential cmake libxtst-dev libpng++-dev`; Fedora needs `gcc-c++ make cmake libXtst-devel libpng-devel`; Arch needs `base-devel cmake libxtst libpng`. Headless hosts also need `xvfb` unless DISPLAY is managed externally.";
+  }
+  return "Install the native build tools and CMake for this OS.";
+}
+
+function localDesktopRuntimeHelp(environment = defaultDesktopEnvironment()) {
+  if (environment === "mac") {
+    return "On macOS, grant the terminal or Node.js process Screen Recording and Accessibility permissions, then restart the process.";
+  }
+  if (environment === "windows") {
+    return "On Windows, make sure the desktop session is unlocked and the process is allowed to control the desktop.";
+  }
+  return "On Linux, make sure DISPLAY points to a running X server; on headless hosts install xvfb or pass virtualDisplay options.";
+}
+
+function errorMessageSuffix(error) {
+  const message = error?.message;
+  return message ? ` Original error: ${message}` : "";
 }
 
 async function maybeCall(fn, thisArg) {
