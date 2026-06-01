@@ -203,8 +203,9 @@ Local desktop computer use controls the native desktop on the machine running yo
 Before running `npx automify-install-desktop`, install the native build tools for your OS:
 
 ```sh
-# Windows: Visual Studio C++ Build Tools plus CMake on PATH.
-winget install Kitware.CMake
+# Windows: Visual Studio 2022 C++ Build Tools plus CMake on PATH.
+winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+winget install --id Kitware.CMake --exact --source winget
 
 # macOS: Xcode Command Line Tools plus CMake on PATH.
 xcode-select --install
@@ -220,7 +221,7 @@ sudo dnf install -y gcc-c++ make cmake libXtst-devel libpng-devel
 sudo pacman -S --needed base-devel cmake libxtst libpng
 ```
 
-On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself.
+On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js.
 
 ```js
 import { initAutomify } from "automify";

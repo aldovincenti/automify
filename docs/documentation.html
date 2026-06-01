@@ -273,12 +273,16 @@ if (run.ok) {
           </p>
           <p>
             Before running `npx automify-install-desktop`, install the native build tools for your OS. On Windows,
-            install Visual Studio C++ Build Tools and CMake on PATH with `winget install Kitware.CMake`; the VS Code
-            CMake Tools extension is not enough by itself. On macOS, install Xcode Command Line Tools with
-            `xcode-select --install` and CMake with `brew install cmake`. On Debian/Ubuntu Linux, install
-            `build-essential`, `cmake`, `libxtst-dev`, and `libpng++-dev`. On Fedora Linux, install `gcc-c++`, `make`,
-            `cmake`, `libXtst-devel`, and `libpng-devel`. On Arch Linux, install `base-devel`, `cmake`, `libxtst`, and
-            `libpng`. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself.
+            install Visual Studio 2022 C++ Build Tools with
+            `winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override "--passive --add
+            Microsoft.VisualStudio.Workload.VCTools --includeRecommended"`, and install CMake on PATH with `winget
+            install --id Kitware.CMake --exact --source winget`; the VS Code CMake Tools extension is not enough by
+            itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js. On
+            macOS, install Xcode Command Line Tools with `xcode-select --install` and CMake with `brew install cmake`.
+            On Debian/Ubuntu Linux, install `build-essential`, `cmake`, `libxtst-dev`, and `libpng++-dev`. On Fedora
+            Linux, install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`. On Arch Linux, install
+            `base-devel`, `cmake`, `libxtst`, and `libpng`. On headless Linux hosts, also install `xvfb` unless you
+            manage `DISPLAY` yourself.
           </p>
           <pre><code>const browser = await automify.browser({
   startUrl: "https://example.com",
@@ -796,9 +800,12 @@ try {
           </p>
           <p>
             Before running the installer, install the native build tools for your OS. On Windows, install Visual Studio
-            C++ Build Tools and CMake on PATH with `winget install Kitware.CMake`; the VS Code CMake Tools extension is
-            not enough by itself. On macOS, install Xcode Command Line Tools with `xcode-select --install` and CMake
-            with `brew install cmake`. On Debian/Ubuntu Linux, install `build-essential`, `cmake`, `libxtst-dev`, and
+            2022 C++ Build Tools with `winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override
+            "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"`, and install CMake on PATH
+            with `winget install --id Kitware.CMake --exact --source winget`; the VS Code CMake Tools extension is not
+            enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by
+            nut.js. On macOS, install Xcode Command Line Tools with `xcode-select --install` and CMake with `brew
+            install cmake`. On Debian/Ubuntu Linux, install `build-essential`, `cmake`, `libxtst-dev`, and
             `libpng++-dev`. On Fedora Linux, install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`.
             On Arch Linux, install `base-devel`, `cmake`, `libxtst`, and `libpng`. On headless Linux hosts, also install
             `xvfb` unless you manage `DISPLAY` yourself.
