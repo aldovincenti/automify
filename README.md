@@ -10,11 +10,11 @@
 
 Computer use surfaces:
 
-| Surface        | Factory                     | Controlled environment                                    |
-| -------------- | --------------------------- | --------------------------------------------------------- |
-| Browser        | `automify.browser()`        | Playwright browser with screenshots and actions           |
+| Surface        | Factory                     | Controlled environment                                      |
+| -------------- | --------------------------- | ----------------------------------------------------------- |
+| Browser        | `automify.browser()`        | Playwright browser with screenshots and actions             |
 | Desktop        | `automify.localComputer()`  | Native desktop on the current macOS, Windows, or Linux host |
-| Docker desktop | `automify.dockerComputer()` | Linux desktop inside a Docker container                   |
+| Docker desktop | `automify.dockerComputer()` | Linux desktop inside a Docker container                     |
 
 Command use surfaces:
 
@@ -199,6 +199,28 @@ try {
 ### Desktop Computer Use
 
 Local desktop computer use controls the native desktop on the machine running your Node.js process. It supports macOS, Windows, and Linux through the local desktop adapter. It needs native desktop dependencies that are not installed by default, and your OS may ask for permission to control the desktop.
+
+Before running `npx automify-install-desktop`, install the native build tools for your OS:
+
+```sh
+# Windows: Visual Studio C++ Build Tools plus CMake on PATH.
+winget install Kitware.CMake
+
+# macOS: Xcode Command Line Tools plus CMake on PATH.
+xcode-select --install
+brew install cmake
+
+# Debian/Ubuntu Linux.
+sudo apt-get install -y build-essential cmake libxtst-dev libpng++-dev
+
+# Fedora Linux.
+sudo dnf install -y gcc-c++ make cmake libXtst-devel libpng-devel
+
+# Arch Linux.
+sudo pacman -S --needed base-devel cmake libxtst libpng
+```
+
+On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself.
 
 ```js
 import { initAutomify } from "automify";

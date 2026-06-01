@@ -271,6 +271,15 @@ if (run.ok) {
             Local desktop computer use is optional and needs native desktop dependencies that are not installed by
             default. When you use the local desktop adapter, your OS may ask for permission to control the desktop.
           </p>
+          <p>
+            Before running `npx automify-install-desktop`, install the native build tools for your OS. On Windows,
+            install Visual Studio C++ Build Tools and CMake on PATH with `winget install Kitware.CMake`; the VS Code
+            CMake Tools extension is not enough by itself. On macOS, install Xcode Command Line Tools with
+            `xcode-select --install` and CMake with `brew install cmake`. On Debian/Ubuntu Linux, install
+            `build-essential`, `cmake`, `libxtst-dev`, and `libpng++-dev`. On Fedora Linux, install `gcc-c++`, `make`,
+            `cmake`, `libXtst-devel`, and `libpng-devel`. On Arch Linux, install `base-devel`, `cmake`, `libxtst`, and
+            `libpng`. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself.
+          </p>
           <pre><code>const browser = await automify.browser({
   startUrl: "https://example.com",
   environment: "browser"
@@ -784,6 +793,15 @@ try {
             postinstall. The command builds nut.js, libnut-core, and macOS permission helpers from source, so it can take
             some time. Local desktop control may require OS permissions. The adapter provides `execute(action, context)`
             and `screenshot(context)` for native desktop control.
+          </p>
+          <p>
+            Before running the installer, install the native build tools for your OS. On Windows, install Visual Studio
+            C++ Build Tools and CMake on PATH with `winget install Kitware.CMake`; the VS Code CMake Tools extension is
+            not enough by itself. On macOS, install Xcode Command Line Tools with `xcode-select --install` and CMake
+            with `brew install cmake`. On Debian/Ubuntu Linux, install `build-essential`, `cmake`, `libxtst-dev`, and
+            `libpng++-dev`. On Fedora Linux, install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`.
+            On Arch Linux, install `base-devel`, `cmake`, `libxtst`, and `libpng`. On headless Linux hosts, also install
+            `xvfb` unless you manage `DISPLAY` yourself.
           </p>
           <p>
             `createLocalDesktopComputer()` is the local desktop mode. On Linux servers without `DISPLAY`, it starts an
