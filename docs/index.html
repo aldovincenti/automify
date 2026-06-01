@@ -87,33 +87,83 @@ console.log(run.parsed); // { id: "8f14e45f-ceea-4b2d-91e7-7c7d5f6a2c9b", firstN
       </div>
 
       <div class="hero-actions" id="install">
-        <div class="install-shell">
-          <div class="install-shell-bar">
-            <span>Install</span>
-            <button class="copy-button" type="button" data-copy="npm install automify">Copy</button>
+        <div class="install-steps">
+          <div class="install-step">
+            <div class="install-step-label">
+              <span>Step 1</span>
+              <strong>Install Automify</strong>
+            </div>
+            <div class="install-shell">
+              <div class="install-shell-bar">
+                <span>npm</span>
+                <button class="copy-button" type="button" data-copy="npm install automify">Copy</button>
+              </div>
+              <div class="install-shell-line">
+                <span class="prompt">&gt;</span>
+                <code>npm install automify</code>
+              </div>
+            </div>
           </div>
-          <div class="install-shell-line">
-            <span class="prompt">&gt;</span>
-            <code>npm install automify</code>
+
+          <div class="install-step">
+            <div class="install-step-label">
+              <span>Step 2</span>
+              <strong id="install-os-title">Optional Linux desktop dependencies</strong>
+            </div>
+            <pre><code id="install-os-commands"># Only for optional local desktop support
+sudo apt-get update
+sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev
+
+# Ubuntu 26.04 only, if Playwright blocks Chromium install
+PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npx playwright install chromium</code></pre>
+          </div>
+
+          <div class="install-step">
+            <div class="install-step-label">
+              <span>Step 3</span>
+              <strong>Install local desktop support</strong>
+            </div>
+            <div class="install-shell">
+              <div class="install-shell-bar">
+                <span>optional</span>
+                <button class="copy-button" type="button" data-copy="npx automify-install-desktop">Copy</button>
+              </div>
+              <div class="install-shell-line">
+                <span class="prompt">&gt;</span>
+                <code>npx automify-install-desktop</code>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="hero-note">
+
+        <div class="install-os-panel">
           <strong>Node.js 20.12.2+</strong>
-          <span
-            >Chromium installs automatically. Local desktop support is optional and installs native dependencies with
-            <code>npx automify-install-desktop</code>; Windows also needs Visual Studio 2022 C++ Build Tools and
-            <code>winget install --id Kitware.CMake --exact --source winget</code>; macOS needs Xcode Command Line Tools and
-            <code>brew install cmake</code>.</span
-          >
+          <span>Base install needs no OS packages beyond Node.js. Chromium installs automatically.</span>
+          <div class="install-os-tabs" role="tablist" aria-label="Install operating system">
+            <button class="install-os-tab is-active" type="button" role="tab" aria-selected="true" data-install-os="linux">
+              Linux
+            </button>
+            <button class="install-os-tab" type="button" role="tab" aria-selected="false" data-install-os="mac">
+              Mac
+            </button>
+            <button class="install-os-tab" type="button" role="tab" aria-selected="false" data-install-os="win">
+              Win
+            </button>
+          </div>
+          <p id="install-os-note">
+            Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the
+            desktop installer does not verify every native library. Ubuntu 26.04 may also need the Playwright platform
+            override shown in Step 2 until native support lands.
+          </p>
         </div>
       </div>
 
       <div class="stat-grid" aria-label="Key features">
         <div><strong>Browser</strong><span>Control a live browser.</span></div>
         <div><strong>CLI</strong><span>Run approved commands.</span></div>
-        <div><strong>Docker CLI</strong><span>Run commands in Docker.</span></div>
+        <div><strong>Docker CLI</strong><span>Run commands in a running Docker daemon.</span></div>
         <div><strong>Desktop</strong><span>Control native apps.</span></div>
-        <div><strong>Docker desktop</strong><span>Launch Linux sandboxes.</span></div>
+        <div><strong>Docker desktop</strong><span>Launch Linux sandboxes with running Docker.</span></div>
       </div>
     </header>
 

@@ -219,11 +219,15 @@ try {
               </tr>
               <tr>
                 <th>Docker CLI</th>
-                <td>`preset`, `container`, `workdir`, `shared`, `sharedFiles`, `command`</td>
+                <td>
+                  `preset`, `container`, `workdir`, `shared`, `sharedFiles`, `command`; requires Docker to be running
+                </td>
               </tr>
               <tr>
                 <th>Docker computer</th>
-                <td>`preset`, `container`, `viewport`, `desktop`, `shared`, `sharedFiles`</td>
+                <td>
+                  `preset`, `container`, `viewport`, `desktop`, `shared`, `sharedFiles`; requires Docker to be running
+                </td>
               </tr>
               <tr>
                 <th>Local desktop</th>
@@ -231,7 +235,9 @@ try {
               </tr>
               <tr>
                 <th>Docker desktop</th>
-                <td>`preset`, `container`, `viewport`, `desktop`, `shared`, `sharedFiles`</td>
+                <td>
+                  `preset`, `container`, `viewport`, `desktop`, `shared`, `sharedFiles`; requires Docker to be running
+                </td>
               </tr>
             </tbody>
           </table>
@@ -279,8 +285,10 @@ if (run.ok) {
             install --id Kitware.CMake --exact --source winget`; the VS Code CMake Tools extension is not enough by
             itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js. On
             macOS, install Xcode Command Line Tools with `xcode-select --install` and CMake with `brew install cmake`.
-            On Debian/Ubuntu Linux, install `build-essential`, `cmake`, `libxtst-dev`, and `libpng++-dev`. On Fedora
-            Linux, install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`. On Arch Linux, install
+            On Debian/Ubuntu Linux, install `git`, `build-essential`, `cmake`, `pkg-config`, `libx11-dev`,
+            `libxtst-dev`, and `libpng++-dev`. Install the full Linux package list before running the desktop installer;
+            it checks for command-line build tools but does not verify every native library package. On Fedora Linux,
+            install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`. On Arch Linux, install
             `base-devel`, `cmake`, `libxtst`, and `libpng`. On headless Linux hosts, also install `xvfb` unless you
             manage `DISPLAY` yourself.
           </p>
@@ -687,7 +695,8 @@ await cli.do("Run tests and summarize any failures");</code></pre>
 });</code></pre>
           <p>
             Use `automify.dockerCli()` when commands should run in an isolated Docker container instead of the host
-            shell. It supports the same command policies and can mount a shared folder into the container.
+            shell. Docker must be installed and running before you create the adapter. It supports the same command
+            policies and can mount a shared folder into the container.
           </p>
           <pre><code>import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -747,9 +756,9 @@ try {
           <h2>Desktop automation supports local and sandboxed Linux sessions.</h2>
           <p>
             There are two desktop modes. `localComputer()` controls the native desktop on the machine running your
-            Node.js process, so it targets macOS, Windows, or Linux depending on the host. `dockerComputer()` can be
-            started from any host that can run Docker Linux containers, but the desktop it controls is always a Linux
-            desktop inside the container.
+            Node.js process, so it targets macOS, Windows, or Linux depending on the host. `dockerComputer()` requires
+            Docker to be installed and running, and can be started from any host that can run Docker Linux containers,
+            but the desktop it controls is always a Linux desktop inside the container.
           </p>
           <table>
             <tbody>
@@ -759,7 +768,10 @@ try {
               </tr>
               <tr>
                 <th>`dockerComputer()`</th>
-                <td>Controls an isolated Linux desktop in Docker, using Xvfb, a window manager, and `xdotool`.</td>
+                <td>
+                  Controls an isolated Linux desktop in Docker, using Xvfb, a window manager, and `xdotool`. Requires
+                  Docker to be running.
+                </td>
               </tr>
             </tbody>
           </table>
@@ -805,10 +817,12 @@ try {
             with `winget install --id Kitware.CMake --exact --source winget`; the VS Code CMake Tools extension is not
             enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by
             nut.js. On macOS, install Xcode Command Line Tools with `xcode-select --install` and CMake with `brew
-            install cmake`. On Debian/Ubuntu Linux, install `build-essential`, `cmake`, `libxtst-dev`, and
-            `libpng++-dev`. On Fedora Linux, install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`.
-            On Arch Linux, install `base-devel`, `cmake`, `libxtst`, and `libpng`. On headless Linux hosts, also install
-            `xvfb` unless you manage `DISPLAY` yourself.
+            install cmake`. On Debian/Ubuntu Linux, install `git`, `build-essential`, `cmake`, `pkg-config`,
+            `libx11-dev`, `libxtst-dev`, and `libpng++-dev`. Install the full Linux package list before running the
+            desktop installer; it checks for command-line build tools but does not verify every native library package.
+            On Fedora Linux, install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`. On Arch Linux,
+            install `base-devel`, `cmake`, `libxtst`, and `libpng`. On headless Linux hosts, also install `xvfb` unless
+            you manage `DISPLAY` yourself.
           </p>
           <p>
             `createLocalDesktopComputer()` is the local desktop mode. On Linux servers without `DISPLAY`, it starts an
@@ -861,9 +875,9 @@ try {
             container from the public `debian:bookworm-slim` image, keeps Docker networking enabled, installs a minimal
             desktop package set with apt on startup, and runs Xvfb, a lightweight window manager, `xdotool` input, and
             PNG screenshots. There is no `automify-docker-desktop:latest` image to pull by default: Automify starts
-            from Debian and prepares the desktop inside that container unless you pass a custom `image`.
-            Docker desktop does not control the host operating system desktop and does not use `automify-install-desktop`;
-            it needs Docker and a startup command instead.
+            from Debian and prepares the desktop inside that container unless you pass a custom `image`. Docker desktop
+            does not control the host operating system desktop and does not use `automify-install-desktop`; it needs a
+            running Docker daemon and a startup command instead.
           </p>
           <p>
             Docker desktop requires an initial app command. Pass `startupCommand` or `desktop.startupCommand`, for
@@ -1347,11 +1361,11 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
               </tr>
               <tr>
                 <th>`automify.dockerCli(options)`</th>
-                <td>Create a Docker-backed command-line automation runner with optional shared files.</td>
+                <td>Create a Docker-backed command-line automation runner with optional shared files. Requires Docker to be running.</td>
               </tr>
               <tr>
                 <th>`automify.dockerComputer(options)`</th>
-                <td>Create a Docker-backed Linux desktop runner with a required `startupCommand`, then close its container with `close()`. The host can be macOS, Windows, or Linux as long as Docker can run Linux containers.</td>
+                <td>Create a Docker-backed Linux desktop runner with a required `startupCommand`, then close its container with `close()`. The host can be macOS, Windows, or Linux as long as Docker is running and can run Linux containers.</td>
               </tr>
               <tr>
                 <th>`automify.localComputer(options)`</th>
@@ -1374,7 +1388,8 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
                 <th>`createDockerDesktopComputer(options)`</th>
                 <td>
                   Create a Docker-backed Linux desktop sandbox with Xvfb, a window manager, `xdotool` input, and
-                  PNG screenshots. `startupCommand` or `desktop.startupCommand` is required.
+                  PNG screenshots. Requires Docker to be running. `startupCommand` or `desktop.startupCommand` is
+                  required.
                 </td>
               </tr>
               <tr>
@@ -1387,11 +1402,11 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
               </tr>
               <tr>
                 <th>`createDockerCliAutomify(options)`</th>
-                <td>Construct a Docker CLI runner directly.</td>
+                <td>Construct a Docker CLI runner directly. Requires Docker to be running.</td>
               </tr>
               <tr>
                 <th>`createDockerComputerAutomify(options)`</th>
-                <td>Construct a Docker desktop runner directly.</td>
+                <td>Construct a Docker desktop runner directly. Requires Docker to be running.</td>
               </tr>
               <tr>
                 <th>`fileToData(file, options)` / `filesToData(files, options)`</th>

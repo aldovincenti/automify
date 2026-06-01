@@ -79,7 +79,8 @@ table,
 .button-link,
 .demo-panel,
 .hero-copy,
-.hero-note,
+.install-os-panel,
+.install-steps,
 .timeline li {
   border: var(--line);
   border-radius: var(--radius);
@@ -322,7 +323,7 @@ h1 {
 .hero-actions {
   margin-top: 26px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.45fr);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.38fr);
   gap: 14px;
   align-items: stretch;
 }
@@ -388,25 +389,104 @@ h1 {
 }
 
 
-.hero-note {
+.install-steps {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: var(--panel-strong);
+  box-shadow: var(--shadow);
+}
+
+.install-step {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.install-step-label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.install-step-label span {
+  display: inline-grid;
+  place-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border: var(--line);
+  border-radius: 999px;
+  background: var(--acid);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.install-step-label strong {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.install-step pre {
+  min-height: 154px;
+  padding: 16px;
+  box-shadow: none;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.install-os-panel {
   display: grid;
   align-content: center;
-  gap: 8px;
+  gap: 12px;
   padding: 18px;
   background: var(--panel-strong);
   box-shadow: var(--shadow);
 }
 
-.hero-note strong {
+.install-os-panel strong {
   font-size: 18px;
   line-height: 1.1;
 }
 
-.hero-note span {
+.install-os-panel span,
+.install-os-panel p {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.45;
   font-weight: 650;
+}
+
+.install-os-panel p {
+  margin: 0;
+}
+
+.install-os-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.install-os-tab {
+  min-height: 42px;
+  padding: 9px 10px;
+  border: var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.install-os-tab.is-active {
+  background:
+    linear-gradient(90deg, rgba(18, 18, 18, 0.08) 1px, transparent 1px) 0 0 / 14px 14px,
+    var(--acid);
 }
 
 .install-shell {
@@ -415,7 +495,6 @@ h1 {
   overflow: hidden;
   background: #111;
   color: #f7f4eb;
-  box-shadow: var(--shadow);
 }
 
 .install-shell-bar {
@@ -1359,6 +1438,10 @@ footer {
   .hero-copy {
     grid-template-columns: 1fr;
     align-items: start;
+  }
+
+  .install-os-panel {
+    align-content: start;
   }
 }
 

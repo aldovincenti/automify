@@ -483,7 +483,7 @@ function localDesktopInstallHelp(platform = process.platform) {
     return "On Windows, install Visual Studio C++ Build Tools and make sure `cmake --version` works, for example after `winget install Kitware.CMake`.";
   }
   if (platform === "linux") {
-    return "On Linux, install the native build tools for your distro: Debian/Ubuntu need `build-essential cmake libxtst-dev libpng++-dev`; Fedora needs `gcc-c++ make cmake libXtst-devel libpng-devel`; Arch needs `base-devel cmake libxtst libpng`. Headless hosts also need `xvfb` unless DISPLAY is managed externally.";
+    return "On Linux, install the native build tools for your distro before running the desktop installer; it does not verify every native library package. Debian/Ubuntu need `git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev`; Fedora needs `gcc-c++ make cmake libXtst-devel libpng-devel`; Arch needs `base-devel cmake libxtst libpng`. Headless hosts also need `xvfb` unless DISPLAY is managed externally.";
   }
   return "Install the native build tools and CMake for this OS.";
 }
@@ -833,15 +833,20 @@ function describePointTransform(x, y, coordinateSpace) {
 
 function buildCoordinateSpace(options, screen) {
   const macOSDisplay = screen.macOSDisplay;
+  const environment = screen.environment ?? options.environment ?? defaultDesktopEnvironment();
   const pixelScale =
     positiveNumber(options.pixelScale) ??
     positiveNumber(macOSDisplay?.backingScaleFactor) ??
-    inferPixelScale(screen, options);
+    inferPixelScale({ ...screen, environment }, options);
   const defaultScale = 1 / pixelScale;
-  const mouseScaleX = scaleRatio(macOSDisplay?.width, screen.displayWidth) ?? defaultScale;
-  const mouseScaleY = scaleRatio(macOSDisplay?.height, screen.displayHeight) ?? defaultScale;
-  const mouseWidth = positiveNumber(macOSDisplay?.width) ?? positiveNumber(screen.displayWidth) * mouseScaleX;
-  const mouseHeight = positiveNumber(macOSDisplay?.height) ?? positiveNumber(screen.displayHeight) * mouseScaleY;
+  const mouseWidth =
+    measuredMouseSize("width", { ...screen, environment, macOSDisplay }) ??
+    scaledDisplaySize(screen.displayWidth, defaultScale);
+  const mouseHeight =
+    measuredMouseSize("height", { ...screen, environment, macOSDisplay }) ??
+    scaledDisplaySize(screen.displayHeight, defaultScale);
+  const mouseScaleX = scaleRatio(mouseWidth, screen.displayWidth) ?? defaultScale;
+  const mouseScaleY = scaleRatio(mouseHeight, screen.displayHeight) ?? defaultScale;
 
   return {
     ...screen,
@@ -856,6 +861,20 @@ function buildCoordinateSpace(options, screen) {
   };
 }
 
+function measuredMouseSize(axis, { environment, macOSDisplay, screenWidth, screenHeight }) {
+  const macOSValue = positiveNumber(macOSDisplay?.[axis]);
+  if (macOSValue) return macOSValue;
+  if (environment === "mac") return null;
+  return positiveNumber(axis === "width" ? screenWidth : screenHeight);
+}
+
+function scaledDisplaySize(size, scale) {
+  const numericSize = positiveNumber(size);
+  const numericScale = positiveNumber(scale);
+  if (!numericSize || !numericScale) return undefined;
+  return numericSize * numericScale;
+}
+
 function scaleRatio(target, source) {
   const numericTarget = positiveNumber(target);
   const numericSource = positiveNumber(source);
@@ -865,16 +884,27 @@ function scaleRatio(target, source) {
 
 function inferPixelScale({ displayWidth, displayHeight, screenWidth, screenHeight }, options = {}) {
   const environment = options.environment ?? defaultDesktopEnvironment();
-  if (environment !== "mac") return 1;
-
   const width = positiveNumber(displayWidth) ?? positiveNumber(screenWidth);
   const height = positiveNumber(displayHeight) ?? positiveNumber(screenHeight);
   if (!width || !height) return 1;
+
+  if (environment !== "mac") {
+    const widthScale = scaleRatio(width, screenWidth);
+    const heightScale = scaleRatio(height, screenHeight);
+    if (widthScale && heightScale && nearlyEqual(widthScale, heightScale)) {
+      return widthScale;
+    }
+    return 1;
+  }
 
   // libnut reports macOS screen size in backing pixels, while CGEvent mouse
   // coordinates use logical points. Built-in Retina displays are 2x here.
   if (width >= 2000 || height >= 1400) return 2;
   return 1;
+}
+
+function nearlyEqual(left, right, epsilon = 0.01) {
+  return Math.abs(left - right) <= epsilon;
 }
 
 function positiveNumber(value) {

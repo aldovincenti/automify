@@ -72,7 +72,7 @@ console.log(run.parsed.passed, run.parsed.summary);`
   },
   dockerCli: {
     title: "Docker CLI",
-    description: "Run an isolated command task against a real shared file.",
+    description: "Run an isolated command task against a real shared file. Requires Docker to be running.",
     response: `{
   topRegion: "North",
   totalRevenue: 3480,
@@ -174,7 +174,7 @@ try {
   },
   dockerDesktop: {
     title: "Docker desktop",
-    description: "Launch an isolated Linux desktop and operate a visible app.",
+    description: "Launch an isolated Linux desktop and operate a visible app. Requires Docker to be running.",
     response: `{
   kernelName: "Linux",
   machine: "x86_64",
@@ -214,6 +214,33 @@ try {
 } finally {
   await desktop.close();
 }`
+  }
+};
+
+const installCommands = {
+  linux: {
+    title: "Optional Linux desktop dependencies",
+    note: "Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the desktop installer does not verify every native library. Ubuntu 26.04 may also need the Playwright platform override shown in Step 2 until native support lands.",
+    commands: `# Only for optional local desktop support
+sudo apt-get update
+sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev
+
+# Ubuntu 26.04 only, if Playwright blocks Chromium install
+PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npx playwright install chromium`
+  },
+  mac: {
+    title: "Optional Mac desktop dependencies",
+    note: "Steps 2 and 3 are only for optional local desktop support. macOS may also ask for Accessibility and Screen Recording permissions when local desktop control starts.",
+    commands: `# Only for optional local desktop support
+xcode-select --install
+brew install cmake`
+  },
+  win: {
+    title: "Optional Windows desktop dependencies",
+    note: "Steps 2 and 3 are only for optional local desktop support. Run these from a terminal where CMake and the Visual Studio C++ tools are available on PATH.",
+    commands: `# Only for optional local desktop support
+winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+winget install --id Kitware.CMake --exact --source winget`
   }
 };
 
@@ -288,6 +315,27 @@ document.addEventListener("click", async (event) => {
       }, 1200);
     }
 
+    return;
+  }
+
+  const installTab = event.target.closest("[data-install-os]");
+  if (installTab) {
+    const os = installTab.getAttribute("data-install-os");
+    const install = installCommands[os];
+    if (!install) return;
+
+    for (const button of document.querySelectorAll("[data-install-os]")) {
+      const active = button === installTab;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-selected", String(active));
+    }
+
+    const title = document.querySelector("#install-os-title");
+    const commands = document.querySelector("#install-os-commands");
+    const note = document.querySelector("#install-os-note");
+    if (title) title.textContent = install.title;
+    if (commands) commands.textContent = install.commands;
+    if (note) note.textContent = install.note;
     return;
   }
 

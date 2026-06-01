@@ -14,14 +14,14 @@ Computer use surfaces:
 | -------------- | --------------------------- | ----------------------------------------------------------- |
 | Browser        | `automify.browser()`        | Playwright browser with screenshots and actions             |
 | Desktop        | `automify.localComputer()`  | Native desktop on the current macOS, Windows, or Linux host |
-| Docker desktop | `automify.dockerComputer()` | Linux desktop inside a Docker container                     |
+| Docker desktop | `automify.dockerComputer()` | Linux desktop inside a running Docker container             |
 
 Command use surfaces:
 
-| Surface    | Factory                | What it does                                         |
-| ---------- | ---------------------- | ---------------------------------------------------- |
-| CLI        | `automify.cli()`       | Terminal automation through model-requested commands |
-| Docker CLI | `automify.dockerCli()` | Containerized terminal automation with shared files  |
+| Surface    | Factory                | What it does                                          |
+| ---------- | ---------------------- | ----------------------------------------------------- |
+| CLI        | `automify.cli()`       | Terminal automation through model-requested commands  |
+| Docker CLI | `automify.dockerCli()` | Containerized terminal automation with running Docker |
 
 OpenAI and Anthropic models are supported, and any other model can be plugged in with a custom provider adapter.
 
@@ -147,7 +147,7 @@ const cli = automify.cli({
 await cli.do("Run the tests and summarize failures");
 ```
 
-Use Docker CLI when command execution should happen inside an isolated container:
+Use Docker CLI when command execution should happen inside an isolated container. Docker must be installed and running before you create the adapter:
 
 ```js
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
@@ -212,7 +212,7 @@ xcode-select --install
 brew install cmake
 
 # Debian/Ubuntu Linux.
-sudo apt-get install -y build-essential cmake libxtst-dev libpng++-dev
+sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev
 
 # Fedora Linux.
 sudo dnf install -y gcc-c++ make cmake libXtst-devel libpng-devel
@@ -221,7 +221,7 @@ sudo dnf install -y gcc-c++ make cmake libXtst-devel libpng-devel
 sudo pacman -S --needed base-devel cmake libxtst libpng
 ```
 
-On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js.
+On Linux, install the full package list before running `npx automify-install-desktop`; the installer checks for command-line build tools but does not verify every native library package. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js.
 
 ```js
 import { initAutomify } from "automify";
@@ -246,7 +246,7 @@ try {
 }
 ```
 
-For isolated Linux desktop computer use, use Docker. `dockerComputer()` can run from a macOS, Windows, or Linux host with Docker, but the desktop it controls inside the container is Linux. Docker desktop does not use `automify-install-desktop`; it needs Docker and an initial app command:
+For isolated Linux desktop computer use, use Docker. `dockerComputer()` can run from a macOS, Windows, or Linux host with Docker installed and running, but the desktop it controls inside the container is Linux. Docker desktop does not use `automify-install-desktop`; it needs a running Docker daemon and an initial app command:
 
 ```js
 import { initAutomify } from "automify";

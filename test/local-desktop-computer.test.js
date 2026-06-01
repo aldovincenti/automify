@@ -273,6 +273,31 @@ test("createLocalDesktopComputer uses macOS point dimensions when available", as
   await computer.close();
 });
 
+test("createLocalDesktopComputer scales high-DPI Windows screenshot coordinates to mouse points", async () => {
+  const events = [];
+  const nut = makeNut(events);
+  nut.screen.width = async () => 1440;
+  nut.screen.height = async () => 900;
+  nut.saveImage = async (_image, path) => {
+    events.push(["saveImage"]);
+    await writeFile(path, pngHeader(2880, 1800));
+  };
+
+  const computer = await createLocalDesktopComputer({
+    nut,
+    environment: "windows"
+  });
+
+  assert.equal(computer.displayWidth, 2880);
+  assert.equal(computer.displayHeight, 1800);
+
+  await computer.execute({ type: "move", x: 2062, y: 1754 });
+
+  assert.deepEqual(events.at(-1), ["move", { x: 1031, y: 877 }]);
+
+  await computer.close();
+});
+
 test("executeLocalDesktopAction allows macOS app switching shortcuts", async () => {
   const events = [];
   const nut = makeNut(events);

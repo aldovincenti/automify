@@ -132,7 +132,8 @@ function checkBuildPrerequisites() {
   if (process.platform === "darwin") {
     console.error("macOS: install Xcode Command Line Tools with `xcode-select --install` and install CMake.");
   } else if (process.platform === "linux") {
-    console.error("Linux: install CMake, a C/C++ compiler, libxtst-dev, and libpng++-dev.");
+    console.error("Linux: install git, build-essential, cmake, pkg-config, libx11-dev, libxtst-dev, and libpng++-dev.");
+    console.error("The Linux installer does not verify every native library package before building.");
   } else if (process.platform === "win32") {
     console.error("Windows: install CMake and Visual Studio 2022 C++ Build Tools.");
     console.error("Make sure the `Desktop development with C++` workload is installed.");
