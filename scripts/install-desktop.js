@@ -44,7 +44,7 @@ mkdirSync(buildRoot, { recursive: true });
 cloneOrPull("https://github.com/nut-tree/libnut-core.git", libnutSource, refs.libnutCore);
 cloneOrPull("https://github.com/nut-tree/nut.js.git", nutSource, refs.nut);
 if (process.platform === "darwin") {
-cloneOrPull("https://github.com/nut-tree/node-mac-permissions.git", macPermissionsSource, refs.macPermissions);
+  cloneOrPull("https://github.com/nut-tree/node-mac-permissions.git", macPermissionsSource, refs.macPermissions);
 }
 
 patchNutWorkspace();
@@ -141,7 +141,7 @@ function checkBuildPrerequisites() {
 }
 
 function commandExists(command) {
-  const result = spawnSync(command, ["--version"], {
+  const result = spawnSync(resolveCommand(command), ["--version"], {
     cwd: root,
     stdio: "ignore"
   });
@@ -333,7 +333,7 @@ function installWorkspacePackage(source, target) {
 }
 
 function run(command, args, options = {}) {
-  const executable = process.platform === "win32" && ["npm", "npx"].includes(command) ? `${command}.cmd` : command;
+  const executable = resolveCommand(command);
   const result = spawnSync(executable, args, {
     cwd: options.cwd ?? root,
     env: options.env ?? process.env,
@@ -365,6 +365,10 @@ function run(command, args, options = {}) {
   }
 
   return commandResult;
+}
+
+function resolveCommand(command) {
+  return process.platform === "win32" && ["npm", "npx"].includes(command) ? `${command}.cmd` : command;
 }
 
 function runPnpm(args, options = {}) {
