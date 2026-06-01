@@ -10,11 +10,11 @@
 
 Computer use surfaces:
 
-| Surface        | Factory                     | What it does                                               |
-| -------------- | --------------------------- | ---------------------------------------------------------- |
-| Browser        | `automify.browser()`        | Playwright browser automation with screenshots and actions |
-| Desktop        | `automify.localComputer()`  | Native desktop computer use on the current machine         |
-| Docker desktop | `automify.dockerComputer()` | Containerized Linux desktop automation with screenshots    |
+| Surface        | Factory                     | Controlled environment                                    |
+| -------------- | --------------------------- | --------------------------------------------------------- |
+| Browser        | `automify.browser()`        | Playwright browser with screenshots and actions           |
+| Desktop        | `automify.localComputer()`  | Native desktop on the current macOS, Windows, or Linux host |
+| Docker desktop | `automify.dockerComputer()` | Linux desktop inside a Docker container                   |
 
 Command use surfaces:
 
@@ -198,11 +198,7 @@ try {
 
 ### Desktop Computer Use
 
-Local desktop computer use is optional. Install it with the command below; it may take a while because it compiles native desktop dependencies. When you use the local desktop adapter, your OS may ask for permission to control the desktop.
-
-```bash
-npx automify-install-desktop
-```
+Local desktop computer use controls the native desktop on the machine running your Node.js process. It supports macOS, Windows, and Linux through the local desktop adapter. It needs native desktop dependencies that are not installed by default, and your OS may ask for permission to control the desktop.
 
 ```js
 import { initAutomify } from "automify";
@@ -215,6 +211,7 @@ const automify = initAutomify({
   }
 });
 
+// Reminder: local desktop support requires `npx automify-install-desktop` once for this project.
 const desktop = await automify.localComputer();
 
 try {
@@ -226,7 +223,7 @@ try {
 }
 ```
 
-For isolated Linux desktop computer use, use Docker:
+For isolated Linux desktop computer use, use Docker. `dockerComputer()` can run from a macOS, Windows, or Linux host with Docker, but the desktop it controls inside the container is Linux. Docker desktop does not use `automify-install-desktop`; it needs Docker and an initial app command:
 
 ```js
 import { initAutomify } from "automify";
@@ -299,6 +296,57 @@ const run = await browser.do("Create the lead from data and return the saved rec
 - `shared` and `sharedFiles` expose files inside Docker CLI or Docker desktop runs.
 - `jsonOutput()` requests structured JSON and makes parsed output available as `run.parsed`.
 
+For arrays of objects, the most ergonomic shape is usually an object with a named array property:
+
+```js
+const run = await browser.do("Extract the products.", {
+  output: jsonOutput("product_list", {
+    products: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          sku: { type: "string" },
+          title: { type: "string" },
+          price: { type: "number" }
+        },
+        required: ["sku", "title", "price"],
+        additionalProperties: false
+      }
+    }
+  })
+});
+
+console.log(run.parsed.products);
+```
+
+If you need `run.parsed` itself to be an array, pass the lower-level `json_schema` output format directly:
+
+```js
+const run = await browser.do("Extract the products.", {
+  output: {
+    type: "json_schema",
+    name: "products",
+    strict: true,
+    schema: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          sku: { type: "string" },
+          title: { type: "string" },
+          price: { type: "number" }
+        },
+        required: ["sku", "title", "price"],
+        additionalProperties: false
+      }
+    }
+  }
+});
+
+console.log(run.parsed[0].sku);
+```
+
 ### Optional Zod Output
 
 If your app already uses Zod 4, you can use the optional Zod adapter instead of writing compact shapes or JSON Schema by hand. Install `zod` in your app and import from the dedicated `automify/zod` subpath:
@@ -318,6 +366,26 @@ const run = await browser.do("Create the lead and return it.", {
 });
 
 console.log(run.parsed.id);
+```
+
+Zod works well for array outputs too:
+
+```js
+const ProductList = z.object({
+  products: z.array(
+    z.object({
+      sku: z.string(),
+      title: z.string(),
+      price: z.number()
+    })
+  )
+});
+
+const run = await browser.do("Extract the products.", {
+  output: zodOutput("product_list", ProductList)
+});
+
+console.log(run.parsed.products);
 ```
 
 `zodOutput()` is not part of the main `automify` import on purpose. Zod is an optional peer dependency, so projects that only use `jsonOutput()` do not need to install it.

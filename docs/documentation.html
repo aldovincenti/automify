@@ -268,18 +268,15 @@ if (run.ok) {
             kind of system it is controlling.
           </p>
           <p>
-            Local desktop computer use is optional. Install it with the command below; it may take a while because it
-            compiles native desktop dependencies. When you use the local desktop adapter, your OS may ask for permission
-            to control the desktop.
+            Local desktop computer use is optional and needs native desktop dependencies that are not installed by
+            default. When you use the local desktop adapter, your OS may ask for permission to control the desktop.
           </p>
-          <pre><code>npx automify-install-desktop
-
-// Then in your Node.js code:
-const browser = await automify.browser({
+          <pre><code>const browser = await automify.browser({
   startUrl: "https://example.com",
   environment: "browser"
 });
 
+// Reminder: local desktop support requires `npx automify-install-desktop` once for this project.
 const desktop = await automify.localComputer();</code></pre>
           <p>
             You can use any string if your adapter targets a different surface, but the built-in browser and desktop
@@ -475,6 +472,10 @@ console.log(run.parsed.id);</code></pre>
             Full JSON Schema lets you use enums, arrays, nested objects, number constraints, string formats, and
             provider-specific schema features.
           </p>
+          <p>
+            For an array of objects, prefer returning an object with a named array property. That keeps `jsonOutput()`
+            in its object-shaped path and gives your application a stable place to read from `run.parsed`.
+          </p>
           <pre><code>const run = await browser.do(
   "Analyze the order.",
   {
@@ -503,6 +504,61 @@ console.log(run.parsed.id);</code></pre>
     })
   }
 );</code></pre>
+          <pre><code>console.log(run.parsed.items);</code></pre>
+          <h3>Top-level arrays</h3>
+          <p>
+            If your application needs `run.parsed` itself to be an array, pass the `json_schema` output format directly.
+            `jsonOutput()` intentionally accepts object-shaped schemas, while `output` can receive the lower-level
+            structured output configuration.
+          </p>
+          <pre><code>const run = await browser.do(
+  "Extract the products.",
+  {
+    output: {
+      type: "json_schema",
+      name: "products",
+      strict: true,
+      schema: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            sku: { type: "string" },
+            title: { type: "string" },
+            price: { type: "number" }
+          },
+          required: ["sku", "title", "price"],
+          additionalProperties: false
+        }
+      }
+    }
+  }
+);
+
+console.log(run.parsed[0].sku);</code></pre>
+          <h3>Zod arrays</h3>
+          <p>
+            Zod schemas can describe arrays too. Use an object with a named array field when you want the same
+            application-friendly shape as `jsonOutput()`.
+          </p>
+          <pre><code>import { z } from "zod";
+import { zodOutput } from "automify/zod";
+
+const ProductList = z.object({
+  products: z.array(
+    z.object({
+      sku: z.string(),
+      title: z.string(),
+      price: z.number()
+    })
+  )
+});
+
+const run = await browser.do("Extract the products.", {
+  output: zodOutput("product_list", ProductList)
+});
+
+console.log(run.parsed.products);</code></pre>
           <h3>Provider compatibility</h3>
           <table>
             <tbody>
@@ -676,10 +732,25 @@ try {
         <section id="desktop">
           <p class="section-kicker">Desktop</p>
           <h2>Desktop automation supports local and sandboxed Linux sessions.</h2>
-          <pre><code>npx automify-install-desktop
-
-// Then in your Node.js code:
-import { initAutomify, jsonOutput } from "automify";
+          <p>
+            There are two desktop modes. `localComputer()` controls the native desktop on the machine running your
+            Node.js process, so it targets macOS, Windows, or Linux depending on the host. `dockerComputer()` can be
+            started from any host that can run Docker Linux containers, but the desktop it controls is always a Linux
+            desktop inside the container.
+          </p>
+          <table>
+            <tbody>
+              <tr>
+                <th>`localComputer()`</th>
+                <td>Controls the current host desktop: macOS, Windows, or Linux.</td>
+              </tr>
+              <tr>
+                <th>`dockerComputer()`</th>
+                <td>Controls an isolated Linux desktop in Docker, using Xvfb, a window manager, and `xdotool`.</td>
+              </tr>
+            </tbody>
+          </table>
+          <pre><code>import { initAutomify, jsonOutput } from "automify";
 
 const automify = initAutomify({
   provider: {
@@ -689,6 +760,7 @@ const automify = initAutomify({
   }
 });
 
+// Reminder: local desktop support requires `npx automify-install-desktop` once for this project.
 const desktop = await automify.localComputer();
 
 try {
@@ -716,7 +788,8 @@ try {
           <p>
             `createLocalDesktopComputer()` is the local desktop mode. On Linux servers without `DISPLAY`, it starts an
             in-memory Xvfb display automatically before loading nut.js. Install `xvfb` on headless hosts, or pass
-            `virtualDisplay: false` if you manage `DISPLAY` outside Automify.
+            `virtualDisplay: false` if you manage `DISPLAY` outside Automify. On macOS and Windows, it controls the
+            host desktop directly through the native nut.js backend.
           </p>
           <p>
             `createLocalDesktopComputer()` takes an exclusive cross-process lock while the adapter is alive. This
@@ -764,6 +837,8 @@ try {
             desktop package set with apt on startup, and runs Xvfb, a lightweight window manager, `xdotool` input, and
             PNG screenshots. There is no `automify-docker-desktop:latest` image to pull by default: Automify starts
             from Debian and prepares the desktop inside that container unless you pass a custom `image`.
+            Docker desktop does not control the host operating system desktop and does not use `automify-install-desktop`;
+            it needs Docker and a startup command instead.
           </p>
           <p>
             Docker desktop requires an initial app command. Pass `startupCommand` or `desktop.startupCommand`, for
@@ -990,6 +1065,7 @@ try {
 
 
 // Local desktop
+// Reminder: local desktop support requires `npx automify-install-desktop` once for this project.
 const localDesktop = await automify.localComputer();
 try {
   await localDesktop.do("Open the Calendar app installed on this computer, find the next event after today, and summarize it. Do not create or edit events.", {
@@ -1250,11 +1326,11 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
               </tr>
               <tr>
                 <th>`automify.dockerComputer(options)`</th>
-                <td>Create a Docker-backed Linux desktop runner with a required `startupCommand`, then close its container with `close()`.</td>
+                <td>Create a Docker-backed Linux desktop runner with a required `startupCommand`, then close its container with `close()`. The host can be macOS, Windows, or Linux as long as Docker can run Linux containers.</td>
               </tr>
               <tr>
                 <th>`automify.localComputer(options)`</th>
-                <td>Create a local desktop runner and release the desktop lock with `close()`.</td>
+                <td>Create a local macOS, Windows, or Linux desktop runner and release the desktop lock with `close()`.</td>
               </tr>
               <tr>
                 <th>`automify.computer(options)`</th>
@@ -1265,8 +1341,8 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
               <tr>
                 <th>`createLocalDesktopComputer(options)`</th>
                 <td>
-                  Create a local desktop adapter backed by locally built nut.js. On Linux without `DISPLAY`, it can
-                  start Xvfb automatically.
+                  Create a local desktop adapter backed by locally built nut.js for macOS, Windows, or Linux. On Linux
+                  without `DISPLAY`, it can start Xvfb automatically.
                 </td>
               </tr>
               <tr>

@@ -3,7 +3,7 @@ const surfaceExamples = {
     title: "Browser",
     description: "Control a real browser and return structured data.",
     response: `{
-  id: "rec_ada_lovelace",
+  id: "35602f61-8430-4426-81fc-2a31fd69d8b7",
   firstName: "Ada",
   lastName: "Lovelace"
 }`,
@@ -142,10 +142,7 @@ try {
     title: "Desktop",
     description: "Use a local desktop through the same computer API.",
     response: `"Design review" "2026-05-29T15:00:00+02:00"`,
-    code: `npx automify-install-desktop
-
-// Then in your Node.js code:
-import { initAutomify, jsonOutput } from "automify";
+    code: `import { initAutomify, jsonOutput } from "automify";
 
 const automify = initAutomify({
   provider: {
@@ -155,6 +152,7 @@ const automify = initAutomify({
   }
 });
 
+// Reminder: local desktop support requires \`npx automify-install-desktop\` once for this project.
 const desktop = await automify.localComputer();
 
 try {
