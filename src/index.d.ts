@@ -211,7 +211,8 @@ export interface LocalDesktopComputerOptions {
   };
   /**
    * Linux only. Defaults to true when DISPLAY is missing. Starts Xvfb so the
-   * local nut.js desktop adapter can run on headless servers.
+   * local nut.js desktop adapter can run on headless servers. Linux local
+   * desktop capture is X11-based; Wayland sessions are not supported.
    */
   virtualDisplay?:
     | boolean
@@ -224,6 +225,11 @@ export interface LocalDesktopComputerOptions {
         args?: string[];
         startupMs?: number;
       };
+  /**
+   * Linux only. Forces Xvfb even when DISPLAY is already set. Ignored on macOS
+   * and Windows. Use this when the host Linux session is Wayland or otherwise
+   * unsuitable for X11 screenshot capture.
+   */
   forceVirtualDisplay?: boolean;
   display?:
     | string

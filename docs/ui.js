@@ -143,7 +143,7 @@ try {
   },
   desktop: {
     title: "Desktop",
-    description: "Use a local desktop through the same computer API.",
+    description: "Use a local desktop through the same computer API. Linux requires X11/Xorg or Xvfb; Wayland is not supported.",
     response: `"Design review" "2026-05-29T15:00:00+02:00"`,
     code: `import { initAutomify, jsonOutput } from "automify";
 
@@ -224,7 +224,7 @@ const installCommands = {
   linux: {
     title: "Linux desktop prerequisites",
     label: "OS packages",
-    note: "Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the desktop installer does not verify every native library. Ubuntu 26.04 may need the Playwright platform override shown in Step 1 until native support lands.",
+    note: "Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the desktop installer does not verify every native library. Linux local desktop requires X11/Xorg or Xvfb; Wayland is not supported. Ubuntu 26.04 may also need the Playwright platform override shown in Step 1 until native support lands.",
     commands: `# Only for optional local desktop support
 sudo apt-get update
 sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev`

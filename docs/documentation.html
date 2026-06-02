@@ -204,6 +204,7 @@ try {
             Adapter factories use the same grouped shape. Browser uses `startUrl`, `viewport`, `launch`, `context`,
             and `navigation`; CLI uses `command`; Docker-backed adapters use `container`, `desktop`, `shared`, and
             `sharedFiles`; local desktop uses `viewport`, `mouse`, `keyboard`, `calibration`, and `virtualDisplay`.
+            Linux local desktop requires X11/Xorg or Xvfb; Wayland is not supported.
             Automify validates adapter option names at runtime and suggests likely fixes. Docker-backed APIs are named
             explicitly; older virtual aliases are still exported for existing code. The generated Markdown reference is
             `docs/argument-reference.md`.
@@ -295,8 +296,8 @@ try {
             `libxtst-dev`, and `libpng++-dev`. Install the full Linux package list before running the desktop installer;
             it checks for command-line build tools but does not verify every native library package. On Fedora Linux,
             install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`. On Arch Linux, install
-            `base-devel`, `cmake`, `libxtst`, and `libpng`. On headless Linux hosts, also install `xvfb` unless you
-            manage `DISPLAY` yourself.
+            `base-devel`, `cmake`, `libxtst`, and `libpng`. Linux local desktop capture is X11-based: use Xorg/X11 or
+            Xvfb, not Wayland. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself.
           </p>
           <pre><code>const browser = await automify.browser({
   startUrl: "https://example.com",
@@ -307,7 +308,8 @@ try {
 const desktop = await automify.localComputer();</code></pre>
           <p>
             You can use any string if your adapter targets a different surface, but the built-in browser and desktop
-            flows are designed around browser, macOS, Windows, and Linux-style environments.
+            flows are designed around browser, macOS, Windows, and Linux X11/Xorg-style environments. Linux Wayland is
+            not supported by the built-in local desktop adapter.
           </p>
         </section>
 
@@ -764,15 +766,16 @@ try {
           <h2>Desktop automation supports local and sandboxed Linux sessions.</h2>
           <p>
             There are two desktop modes. `localComputer()` controls the native desktop on the machine running your
-            Node.js process, so it targets macOS, Windows, or Linux depending on the host. `dockerComputer()` requires
-            Docker to be installed and running, and can be started from any host that can run Docker Linux containers,
-            but the desktop it controls is always a Linux desktop inside the container.
+            Node.js process, so it targets macOS, Windows, or Linux depending on the host. On Linux, this means X11/Xorg
+            or Xvfb; Wayland is not supported for local desktop control. `dockerComputer()` requires Docker to be
+            installed and running, and can be started from any host that can run Docker Linux containers, but the desktop
+            it controls is always a Linux desktop inside the container.
           </p>
           <table>
             <tbody>
               <tr>
                 <th>`localComputer()`</th>
-                <td>Controls the current host desktop: macOS, Windows, or Linux.</td>
+                <td>Controls the current host desktop: macOS, Windows, or Linux X11/Xorg. Linux Wayland is not supported.</td>
               </tr>
               <tr>
                 <th>`dockerComputer()`</th>
@@ -832,14 +835,16 @@ try {
             `libx11-dev`, `libxtst-dev`, and `libpng++-dev`. Install the full Linux package list before running the
             desktop installer; it checks for command-line build tools but does not verify every native library package.
             On Fedora Linux, install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`. On Arch Linux,
-            install `base-devel`, `cmake`, `libxtst`, and `libpng`. On headless Linux hosts, also install `xvfb` unless
-            you manage `DISPLAY` yourself.
+            install `base-devel`, `cmake`, `libxtst`, and `libpng`. Linux local desktop capture is X11-based: use
+            Xorg/X11 or Xvfb, not Wayland. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY`
+            yourself.
           </p>
           <p>
             `createLocalDesktopComputer()` is the local desktop mode. On Linux servers without `DISPLAY`, it starts an
             in-memory Xvfb display automatically before loading nut.js. Install `xvfb` on headless hosts, or pass
-            `virtualDisplay: false` if you manage `DISPLAY` outside Automify. On macOS and Windows, it controls the
-            host desktop directly through the native nut.js backend.
+            `virtualDisplay: false` if you manage an X11 `DISPLAY` outside Automify. Wayland `DISPLAY`/XWayland sessions
+            are not supported for local desktop capture and can fail with native X11 errors such as `BadMatch` /
+            `X_GetImage`. On macOS and Windows, it controls the host desktop directly through the native nut.js backend.
           </p>
           <p>
             `createLocalDesktopComputer()` takes an exclusive cross-process lock while the adapter is alive. This
@@ -1384,7 +1389,7 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
               </tr>
               <tr>
                 <th>`automify.localComputer(options)`</th>
-                <td>Create a local macOS, Windows, or Linux desktop runner and release the desktop lock with `close()`.</td>
+                <td>Create a local macOS, Windows, or Linux X11/Xorg desktop runner and release the desktop lock with `close()`. Linux Wayland is not supported.</td>
               </tr>
               <tr>
                 <th>`automify.computer(options)`</th>
@@ -1395,8 +1400,8 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
               <tr>
                 <th>`createLocalDesktopComputer(options)`</th>
                 <td>
-                  Create a local desktop adapter backed by locally built nut.js for macOS, Windows, or Linux. On Linux
-                  without `DISPLAY`, it can start Xvfb automatically.
+                  Create a local desktop adapter backed by locally built nut.js for macOS, Windows, or Linux X11/Xorg.
+                  Linux Wayland is not supported. On Linux without `DISPLAY`, it can start Xvfb automatically.
                 </td>
               </tr>
               <tr>

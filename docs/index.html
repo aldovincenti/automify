@@ -174,8 +174,9 @@ npx automify-install-desktop --force</code></pre>
           </div>
           <p id="install-os-note">
             Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the
-            desktop installer does not verify every native library. Ubuntu 26.04 may need the Playwright platform
-            override shown in Step 1 until native support lands.
+            desktop installer does not verify every native library. Linux local desktop requires X11/Xorg or Xvfb;
+            Wayland is not supported. Ubuntu 26.04 may also need the Playwright platform override shown in Step 1 until
+            native support lands.
           </p>
         </div>
       </div>
@@ -184,7 +185,7 @@ npx automify-install-desktop --force</code></pre>
         <div><strong>Browser</strong><span>Control a live browser.</span></div>
         <div><strong>CLI</strong><span>Run approved commands.</span></div>
         <div><strong>Docker CLI</strong><span>Run commands in a running Docker daemon.</span></div>
-        <div><strong>Desktop</strong><span>Control native apps.</span></div>
+        <div><strong>Desktop</strong><span>Control native apps. Linux needs X11/Xorg or Xvfb, not Wayland.</span></div>
         <div><strong>Docker desktop</strong><span>Launch Linux sandboxes with running Docker.</span></div>
       </div>
     </header>

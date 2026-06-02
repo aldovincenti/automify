@@ -10,11 +10,11 @@
 
 Computer use surfaces:
 
-| Surface        | Factory                     | Controlled environment                                      |
-| -------------- | --------------------------- | ----------------------------------------------------------- |
-| Browser        | `automify.browser()`        | Playwright browser with screenshots and actions             |
-| Desktop        | `automify.localComputer()`  | Native desktop on the current macOS, Windows, or Linux host |
-| Docker desktop | `automify.dockerComputer()` | Linux desktop inside a running Docker container             |
+| Surface        | Factory                     | Controlled environment                                    |
+| -------------- | --------------------------- | --------------------------------------------------------- |
+| Browser        | `automify.browser()`        | Playwright browser with screenshots and actions           |
+| Desktop        | `automify.localComputer()`  | Native desktop on macOS, Windows, or Linux X11/Xorg hosts |
+| Docker desktop | `automify.dockerComputer()` | Linux desktop inside a running Docker container           |
 
 Command use surfaces:
 
@@ -204,7 +204,9 @@ try {
 
 ### Desktop Computer Use
 
-Local desktop computer use controls the native desktop on the machine running your Node.js process. It supports macOS, Windows, and Linux through the local desktop adapter. It needs native desktop dependencies that are not installed by default, and your OS may ask for permission to control the desktop.
+Local desktop computer use controls the native desktop on the machine running your Node.js process. It supports macOS, Windows, and Linux through the local desktop adapter. On Linux, local desktop support requires X11/Xorg or Xvfb; Wayland sessions are not supported. It needs native desktop dependencies that are not installed by default, and your OS may ask for permission to control the desktop.
+
+**Linux Wayland is not supported for local desktop control.** If `echo $XDG_SESSION_TYPE` prints `wayland`, `localComputer()` can fail during screenshot capture with native X11 errors such as `BadMatch` / `X_GetImage`. Use an Xorg session, run under Xvfb with `forceVirtualDisplay`, or use `dockerComputer()` for an isolated Linux desktop.
 
 Before running `npx automify-install-desktop`, install the native build tools for your OS:
 
@@ -230,7 +232,7 @@ sudo dnf install -y gcc-c++ make cmake libXtst-devel libpng-devel
 sudo pacman -S --needed base-devel cmake libxtst libpng
 ```
 
-On Linux, install the full package list before running `npx automify-install-desktop`; the installer checks for command-line build tools but does not verify every native library package. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS, install Homebrew first if `brew` is not available, then install CMake with `brew install cmake`. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js.
+On Linux, install the full package list before running `npx automify-install-desktop`; the installer checks for command-line build tools but does not verify every native library package. Linux local desktop capture is X11-based: use Xorg/X11, not Wayland. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS, install Homebrew first if `brew` is not available, then install CMake with `brew install cmake`. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js.
 
 `npx automify-install-desktop` stores the compiled desktop runtime outside `node_modules` in a long-term cache, so normal `npm update` runs do not remove it. If the command is run again and the cached runtime already matches the current platform, CPU architecture, Node ABI, and pinned nut.js/libnut revisions, Automify prints a skip message and exits without rebuilding. Use `npx automify-install-desktop --force` (or `npx automify-install-desktop force`) to rebuild a compatible cache anyway. If a later `npm install` or `npm update` detects that a previously installed desktop runtime no longer matches the current environment, Automify rebuilds it automatically during `postinstall`. Default cache roots are `%LOCALAPPDATA%\automify\desktop-runtime` on Windows, `~/Library/Caches/automify/desktop-runtime` on macOS, and `${XDG_CACHE_HOME:-~/.cache}/automify/desktop-runtime` on Linux. Override with `AUTOMIFY_DESKTOP_RUNTIME_DIR`; disable auto-rebuild with `AUTOMIFY_SKIP_DESKTOP_AUTO_REBUILD=1`.
 
@@ -257,7 +259,7 @@ try {
 }
 ```
 
-For isolated Linux desktop computer use, use Docker. `dockerComputer()` can run from a macOS, Windows, or Linux host with Docker installed and running, but the desktop it controls inside the container is Linux. Docker desktop does not use `automify-install-desktop`; it needs a running Docker daemon and an initial app command:
+For isolated Linux desktop computer use, use Docker. `dockerComputer()` can run from a macOS, Windows, or Linux host with Docker installed and running, but the desktop it controls inside the container is Linux. This is the recommended path when the host Linux session uses Wayland, because `localComputer()` does not support Wayland. Docker desktop does not use `automify-install-desktop`; it needs a running Docker daemon and an initial app command:
 
 ```js
 import { initAutomify } from "automify";
