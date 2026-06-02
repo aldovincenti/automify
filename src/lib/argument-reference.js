@@ -51,7 +51,7 @@ export const argumentReference = [
       "logFile"
     ],
     notes:
-      'Requires Docker to be installed and running. Use additionalAptPackages to apt-install Debian packages before commands run. Use preset: "repo" to mount the current workspace at /workspace and allow common repo commands. Use logFile to capture CLI and Docker container events.'
+      'Requires Docker to be installed and running. Use additionalAptPackages to apt-install packages before commands run. Use preset: "repo" to mount the current workspace at /workspace and allow common repo commands. Use logFile to capture CLI and Docker container events.'
   },
   {
     surface: "automify.dockerComputer()",
@@ -66,7 +66,7 @@ export const argumentReference = [
       "logFile"
     ],
     notes:
-      "Creates a Docker-backed Linux desktop runner and requires Docker to be installed and running. Pass startupCommand or desktop.startupCommand to launch the initial app. Use additionalAptPackages to apt-install extra Debian packages. Use logFile to capture automation and Docker desktop events. Explicit container names are locked per name until close()."
+      "Creates a Docker-backed Linux desktop runner and requires Docker to be installed and running. Pass startupCommand or desktop.startupCommand to launch the initial app. Use additionalAptPackages to apt-install extra packages. Use logFile to capture automation and Docker desktop events. Explicit container names are locked per name until close()."
   },
   {
     surface: "automify.localComputer()",
@@ -93,6 +93,6 @@ export const argumentReference = [
       "logFile"
     ],
     notes:
-      "Requires Docker to be installed and running. container controls Docker and resource limits; startupCommand or desktop.startupCommand is required; shared/sharedFiles control host file access. Use additionalAptPackages to apt-install extra Debian packages and logFile to capture Docker desktop events."
+      "Requires Docker to be installed and running. container controls Docker and resource limits; startupCommand or desktop.startupCommand is required; shared/sharedFiles control host file access. Use additionalAptPackages to apt-install extra packages and logFile to capture Docker desktop events."
   }
 ];

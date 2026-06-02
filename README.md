@@ -8,8 +8,6 @@
 
 `Automify` is a Node.js library for AI computer use and command use across web apps, terminals, native desktops, Docker CLI sandboxes, and Docker-backed Linux desktops.
 
-Created by [Aldo Vincenti](https://aldovincenti.com).
-
 Computer use surfaces:
 
 | Surface        | Factory                     | Controlled environment                                    |
@@ -217,7 +215,7 @@ const automify = initAutomify({
 const cli = automify.dockerCli({
   // Optional: choose resource limits without changing the default image.
   container: { cpus: 1, memory: "1g" },
-  // Optional: install Debian packages before commands run.
+  // Optional: install apt packages before commands run.
   additionalAptPackages: ["coreutils", "nodejs"],
   // Optional: mount a host folder into the container workspace.
   shared: { hostPath: sharedDir, containerPath: "/workspace" }
@@ -255,17 +253,11 @@ winget install --id Kitware.CMake --exact --source winget
 xcode-select --install
 brew install cmake
 
-# Debian/Ubuntu Linux.
+# Ubuntu Linux.
 sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev
-
-# Fedora Linux.
-sudo dnf install -y gcc-c++ make cmake libXtst-devel libpng-devel
-
-# Arch Linux.
-sudo pacman -S --needed base-devel cmake libxtst libpng
 ```
 
-On Linux, install the full package list before running `npx automify-install-desktop`; the installer checks for command-line build tools but does not verify every native library package. Linux local desktop capture is X11-based: use Xorg/X11, not Wayland. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS, install Homebrew first if `brew` is not available, then install CMake with `brew install cmake`. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js.
+On Linux, the documented local desktop path is Ubuntu. Install the full package list before running `npx automify-install-desktop`; the installer checks for command-line build tools but does not verify every native library package. Linux local desktop capture is X11-based: use Xorg/X11, not Wayland. On headless Ubuntu hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS, install Homebrew first if `brew` is not available, then install CMake with `brew install cmake`. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js.
 
 `npx automify-install-desktop` stores the compiled desktop runtime outside `node_modules` in a long-term cache, so normal `npm update` runs do not remove it. If the command is run again and the cached runtime already matches the current platform, CPU architecture, Node ABI, and pinned nut.js/libnut revisions, Automify prints a skip message and exits without rebuilding. Use `npx automify-install-desktop --force` (or `npx automify-install-desktop force`) to rebuild a compatible cache anyway. If a later `npm install` or `npm update` detects that a previously installed desktop runtime no longer matches the current environment, Automify rebuilds it automatically during `postinstall`. Default cache roots are `%LOCALAPPDATA%\automify\desktop-runtime` on Windows, `~/Library/Caches/automify/desktop-runtime` on macOS, and `${XDG_CACHE_HOME:-~/.cache}/automify/desktop-runtime` on Linux. Override with `AUTOMIFY_DESKTOP_RUNTIME_DIR`; disable auto-rebuild with `AUTOMIFY_SKIP_DESKTOP_AUTO_REBUILD=1`.
 
@@ -590,3 +582,5 @@ MIT
 ## Disclaimer
 
 Automify is distributed "as is", without warranty of any kind. Automation can control browsers, shells, desktops, files, and external services; you are responsible for how you configure and run it, and for any events associated with that use. To the maximum extent permitted by law, the author is not liable for losses, damages, data loss, service disruption, or other consequences arising from use of the software.
+
+Created by [Aldo Vincenti](https://aldovincenti.com).

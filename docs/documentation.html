@@ -64,19 +64,6 @@
         <section id="install">
           <p class="section-kicker">Start</p>
           <h2>Install</h2>
-          <div class="doc-callout">
-            <strong>Most projects only need three decisions.</strong>
-            <p>Pick a provider, choose a surface, and decide which guardrails should apply before the model can act.</p>
-          </div>
-          <div class="doc-quick-links" aria-label="Common documentation paths">
-            <a href="#browser"><strong>Web workflow</strong><span>Automate forms, dashboards, and portals.</span></a>
-            <a href="#cli"
-              ><strong>Terminal workflow</strong><span>Run repo checks and scripts with command policies.</span></a
-            >
-            <a href="#desktop"
-              ><strong>Desktop workflow</strong><span>Control local apps or sandboxed Linux desktops.</span></a
-            >
-          </div>
           <div class="install-shell">
             <div class="install-shell-bar">
               <span>Terminal</span>
@@ -317,28 +304,52 @@ try {
             default. When you use the local desktop adapter, your OS may ask for permission to control the desktop.
           </p>
           <p>
-            Before running `npx automify-install-desktop`, install the native build tools for your OS. On Windows,
-            install Visual Studio 2022 C++ Build Tools with
-            `winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override "--passive --add
-            Microsoft.VisualStudio.Workload.VCTools --includeRecommended"`, and install CMake on PATH with `winget
-            install --id Kitware.CMake --exact --source winget`; the VS Code CMake Tools extension is not enough by
-            itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js. On
-            macOS, install Homebrew first with `/bin/bash -c "$(curl -fsSL
-            https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"` if `brew` is not available, then
-            install Xcode Command Line Tools with `xcode-select --install` and CMake with `brew install cmake`.
-            On Debian/Ubuntu Linux, install `git`, `build-essential`, `cmake`, `pkg-config`, `libx11-dev`,
-            `libxtst-dev`, and `libpng++-dev`. Install the full Linux package list before running the desktop installer;
-            it checks for command-line build tools but does not verify every native library package. On Fedora Linux,
-            install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`. On Arch Linux, install
-            `base-devel`, `cmake`, `libxtst`, and `libpng`. Linux local desktop capture is X11-based: use Xorg/X11 or
-            Xvfb, not Wayland. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself.
+            Before running the desktop installer, install the native build tools for your operating system:
+          </p>
+          <table>
+            <tbody>
+              <tr>
+                <th>Windows</th>
+                <td>Visual Studio 2022 C++ Build Tools and CMake on PATH.</td>
+              </tr>
+              <tr>
+                <th>macOS</th>
+                <td>Xcode Command Line Tools and CMake. Install Homebrew first if `brew` is not available.</td>
+              </tr>
+              <tr>
+                <th>Ubuntu</th>
+                <td>Native build tools plus X11 and PNG development libraries.</td>
+              </tr>
+            </tbody>
+          </table>
+          <pre><code># Windows
+winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+winget install --id Kitware.CMake --exact --source winget
+
+# macOS
+xcode-select --install
+brew install cmake
+
+# Ubuntu
+sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev</code></pre>
+          <p>
+            On macOS and Windows, `cmake --version` must work in the same terminal where you run the installer. The VS
+            Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the
+            native build chain used by nut.js.
+          </p>
+          <pre><code>npx automify-install-desktop</code></pre>
+          <p>
+            Linux local desktop support is documented for Ubuntu. Capture is X11-based: use Xorg/X11 or Xvfb, not
+            Wayland. On headless Ubuntu hosts, also install Xvfb unless you manage `DISPLAY` yourself. Install the full
+            package list before running the desktop installer; it checks for command-line build tools but does not verify
+            every native library package.
           </p>
           <pre><code>const browser = await automify.browser({
   startUrl: "https://example.com",
   environment: "browser"
 });
 
-// Reminder: local desktop support requires `npx automify-install-desktop` once for this project.
+// Local desktop support requires the desktop installer once for this project.
 const desktop = await automify.localComputer();</code></pre>
           <p>
             You can use any string if your adapter targets a different surface, but the built-in browser and desktop
@@ -893,13 +904,11 @@ try {
             with `winget install --id Kitware.CMake --exact --source winget`; the VS Code CMake Tools extension is not
             enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by
             nut.js. On macOS, install Xcode Command Line Tools with `xcode-select --install` and CMake with `brew
-            install cmake`. On Debian/Ubuntu Linux, install `git`, `build-essential`, `cmake`, `pkg-config`,
-            `libx11-dev`, `libxtst-dev`, and `libpng++-dev`. Install the full Linux package list before running the
-            desktop installer; it checks for command-line build tools but does not verify every native library package.
-            On Fedora Linux, install `gcc-c++`, `make`, `cmake`, `libXtst-devel`, and `libpng-devel`. On Arch Linux,
-            install `base-devel`, `cmake`, `libxtst`, and `libpng`. Linux local desktop capture is X11-based: use
-            Xorg/X11 or Xvfb, not Wayland. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY`
-            yourself.
+            install cmake`. On Ubuntu Linux, install `git`, `build-essential`, `cmake`, `pkg-config`, `libx11-dev`,
+            `libxtst-dev`, and `libpng++-dev`. Install the full Ubuntu package list before running the desktop installer;
+            it checks for command-line build tools but does not verify every native library package. Linux local desktop
+            capture is X11-based: use Xorg/X11 or Xvfb, not Wayland. On headless Ubuntu hosts, also install `xvfb` unless
+            you manage `DISPLAY` yourself.
           </p>
           <p>
             `createLocalDesktopComputer()` is the local desktop mode. On Linux servers without `DISPLAY`, it starts an
@@ -950,19 +959,19 @@ try {
 }</code></pre>
           <p>
             `createDockerDesktopComputer()` creates a Docker-backed Linux desktop. By default it creates a fresh
-            container from the public `debian:bookworm-slim` image, keeps Docker networking enabled, installs a minimal
-            desktop package set with apt on startup, and runs Xvfb, a lightweight window manager, `xdotool` input, and
-            PNG screenshots. There is no `automify-docker-desktop:latest` image to pull by default: Automify starts
-            from Debian and prepares the desktop inside that container unless you pass a custom `image`. Docker desktop
-            does not control the host operating system desktop and does not use `automify-install-desktop`; it needs a
-            running Docker daemon and a startup command instead.
+            container from the default public Linux image, keeps Docker networking enabled, installs a minimal desktop
+            package set with apt on startup, and runs Xvfb, a lightweight window manager, `xdotool` input, and PNG
+            screenshots. There is no `automify-docker-desktop:latest` image to pull by default: Automify prepares the
+            desktop inside the container unless you pass a custom `image`. Docker desktop does not control the host
+            operating system desktop and does not use `automify-install-desktop`; it needs a running Docker daemon and a
+            startup command instead.
           </p>
           <p>
             Docker desktop requires an initial app command. Pass `startupCommand` or `desktop.startupCommand`, for
             example `desktop.startupCommand: "xterm"`.
           </p>
           <p>
-            The default Debian setup installs `xvfb`, `openbox`, `xterm`, `x11-utils`, `xdotool`, `imagemagick`,
+            The default Docker desktop setup installs `xvfb`, `openbox`, `xterm`, `x11-utils`, `xdotool`, `imagemagick`,
             `scrot`, and `ca-certificates`. Browser packages are opt-in; pass `desktop.additionalAptPackages:
             ["chromium"]` when you want Chromium installed during container startup. Pass `container.image` to use
             another apt-based distro or a prebuilt image. When `desktop.installDependencies: false`, the image must
@@ -1398,7 +1407,7 @@ OPENAI_API_KEY=... npm run test:live</code></pre>
               <tr>
                 <th>`AUTOMIFY_VIRTUAL_DESKTOP_IMAGE`</th>
                 <td>No</td>
-                <td>Optional Docker desktop base image override. Defaults to `debian:bookworm-slim`.</td>
+                <td>Optional Docker desktop base image override.</td>
               </tr>
               <tr>
                 <th>`AUTOMIFY_LIVE_LOGS=1`</th>
