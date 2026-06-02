@@ -1,6 +1,6 @@
 {
   "name": "automify",
-  "version": "0.1.11",
+  "version": "0.2.0",
   "description": "AI computer use for browser, CLI, and desktop in Node.js.",
   "homepage": "https://aldovincenti.github.io/automify",
   "bugs": {
