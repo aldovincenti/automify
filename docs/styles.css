@@ -1337,6 +1337,12 @@ li {
   font-size: 20px;
 }
 
+.doc h4 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
 .doc p {
   max-width: 74ch;
   margin-bottom: 0;
@@ -1349,6 +1355,55 @@ li {
   background: #fffbf2;
   color: var(--ink);
   box-shadow: none;
+}
+
+.desktop-prereq-list {
+  display: grid;
+  gap: 12px;
+}
+
+.desktop-prereq-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-strong);
+}
+
+.desktop-prereq-card h4 {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 9px;
+  border: var(--line);
+  border-radius: var(--radius);
+  background: var(--acid);
+}
+
+.desktop-prereq-card pre {
+  max-width: 100%;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.desktop-prereq-card pre.code-copy-ready {
+  padding-top: 50px;
+}
+
+.desktop-prereq-card pre > code {
+  white-space: inherit;
+  overflow-wrap: inherit;
+}
+
+.desktop-prereq-card p {
+  margin-top: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .doc-grid {
@@ -1464,6 +1519,12 @@ footer {
   .install-os-panel {
     align-content: start;
   }
+}
+
+.desktop-prereq-card pre,
+.desktop-prereq-card pre > code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 640px) {

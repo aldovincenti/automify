@@ -888,50 +888,36 @@ try {
           </p>
           <h3>Native desktop prerequisites</h3>
           <p>Install the native build tools for your OS before running `npx automify-install-desktop`.</p>
-          <table>
-            <thead>
-              <tr>
-                <th>OS</th>
-                <th>Install</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <th>Windows</th>
-                <td>
-                  <pre><code>winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+          <div class="desktop-prereq-list">
+            <article class="desktop-prereq-card">
+              <h4>Windows</h4>
+              <pre><code>winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override `
+  "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
 winget install --id Kitware.CMake --exact --source winget</code></pre>
-                </td>
-                <td>
-                  CMake must be available on PATH. The VS Code CMake Tools extension is not enough by itself, and Visual
-                  Studio 2026 is not currently recognized by the native build chain used by nut.js.
-                </td>
-              </tr>
-              <tr>
-                <th>macOS</th>
-                <td>
-                  <pre><code>xcode-select --install
+              <p>
+                CMake must be available on PATH. The VS Code CMake Tools extension is not enough by itself, and Visual
+                Studio 2026 is not currently recognized by the native build chain used by nut.js.
+              </p>
+            </article>
+            <article class="desktop-prereq-card">
+              <h4>macOS</h4>
+              <pre><code>xcode-select --install
 brew install cmake</code></pre>
-                </td>
-                <td>
-                  Install Homebrew first if `brew` is not available. `cmake --version` must work in the terminal where
-                  you run the desktop installer.
-                </td>
-              </tr>
-              <tr>
-                <th>Ubuntu Linux</th>
-                <td>
-                  <pre><code>sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev</code></pre>
-                </td>
-                <td>
-                  Install the full package list before running the installer; it checks for command-line build tools but
-                  does not verify every native library package. On headless hosts, also install `xvfb` unless you manage
-                  `DISPLAY` yourself.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              <p>
+                Install Homebrew first if `brew` is not available. `cmake --version` must work in the terminal where
+                you run the desktop installer.
+              </p>
+            </article>
+            <article class="desktop-prereq-card">
+              <h4>Ubuntu Linux</h4>
+              <pre><code>sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev</code></pre>
+              <p>
+                Install the full package list before running the installer; it checks for command-line build tools but
+                does not verify every native library package. On headless hosts, also install `xvfb` unless you manage
+                `DISPLAY` yourself.
+              </p>
+            </article>
+          </div>
           <p>
             Linux local desktop capture is X11-based: use Xorg/X11 or Xvfb, not Wayland.
           </p>
