@@ -15,12 +15,12 @@
       <nav class="nav" aria-label="Documentation navigation">
         <a href="./index.html">Home</a>
         <a href="#install">Install</a>
-        <a href="#disclaimer">Disclaimer</a>
         <a href="#providers">Models</a>
         <a href="#browser">Browser</a>
         <a href="#cli">CLI</a>
         <a href="#desktop">Desktop</a>
         <a href="#adapters">Adapters</a>
+        <a href="#disclaimer">Disclaimer</a>
       </nav>
 
       <div class="docs-hero-copy">
@@ -37,7 +37,6 @@
       <aside class="toc" aria-label="Documentation table of contents">
         <strong>On this page</strong>
         <a href="#install">Install</a>
-        <a href="#disclaimer">Disclaimer</a>
         <a href="#core">Core idea</a>
         <a href="#arguments">Argument shape</a>
         <a href="#environments">Environments</a>
@@ -58,6 +57,7 @@
         <a href="#observability">Observability</a>
         <a href="#testing">Testing</a>
         <a href="#api">API map</a>
+        <a href="#disclaimer">Disclaimer</a>
       </aside>
 
       <article class="doc">
@@ -113,17 +113,6 @@ sudo docker run hello-world</code></pre>
             To run Docker commands without `sudo`, add your user to the `docker` group, then log out and back in:
           </p>
           <pre><code>sudo usermod -aG docker $USER</code></pre>
-        </section>
-
-        <section id="disclaimer">
-          <p class="section-kicker">Disclaimer</p>
-          <h2>Distributed as is.</h2>
-          <p>
-            Automify is provided "as is", without warranty of any kind. Automation can control browsers, shells,
-            desktops, files, and external services; you are responsible for how you configure and run it, and for any
-            events associated with that use. To the maximum extent permitted by law, the author is not liable for losses,
-            damages, data loss, service disruption, or other consequences arising from use of the software.
-          </p>
         </section>
 
         <section id="core">
@@ -897,18 +886,54 @@ try {
             require OS permissions. The adapter provides `execute(action, context)` and `screenshot(context)` for native
             desktop control.
           </p>
+          <h3>Native desktop prerequisites</h3>
+          <p>Install the native build tools for your OS before running `npx automify-install-desktop`.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>OS</th>
+                <th>Install</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Windows</th>
+                <td>
+                  <pre><code>winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+winget install --id Kitware.CMake --exact --source winget</code></pre>
+                </td>
+                <td>
+                  CMake must be available on PATH. The VS Code CMake Tools extension is not enough by itself, and Visual
+                  Studio 2026 is not currently recognized by the native build chain used by nut.js.
+                </td>
+              </tr>
+              <tr>
+                <th>macOS</th>
+                <td>
+                  <pre><code>xcode-select --install
+brew install cmake</code></pre>
+                </td>
+                <td>
+                  Install Homebrew first if `brew` is not available. `cmake --version` must work in the terminal where
+                  you run the desktop installer.
+                </td>
+              </tr>
+              <tr>
+                <th>Ubuntu Linux</th>
+                <td>
+                  <pre><code>sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev</code></pre>
+                </td>
+                <td>
+                  Install the full package list before running the installer; it checks for command-line build tools but
+                  does not verify every native library package. On headless hosts, also install `xvfb` unless you manage
+                  `DISPLAY` yourself.
+                </td>
+              </tr>
+            </tbody>
+          </table>
           <p>
-            Before running the installer, install the native build tools for your OS. On Windows, install Visual Studio
-            2022 C++ Build Tools with `winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override
-            "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"`, and install CMake on PATH
-            with `winget install --id Kitware.CMake --exact --source winget`; the VS Code CMake Tools extension is not
-            enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by
-            nut.js. On macOS, install Xcode Command Line Tools with `xcode-select --install` and CMake with `brew
-            install cmake`. On Ubuntu Linux, install `git`, `build-essential`, `cmake`, `pkg-config`, `libx11-dev`,
-            `libxtst-dev`, and `libpng++-dev`. Install the full Ubuntu package list before running the desktop installer;
-            it checks for command-line build tools but does not verify every native library package. Linux local desktop
-            capture is X11-based: use Xorg/X11 or Xvfb, not Wayland. On headless Ubuntu hosts, also install `xvfb` unless
-            you manage `DISPLAY` yourself.
+            Linux local desktop capture is X11-based: use Xorg/X11 or Xvfb, not Wayland.
           </p>
           <p>
             `createLocalDesktopComputer()` is the local desktop mode. On Linux servers without `DISPLAY`, it starts an
@@ -1521,6 +1546,17 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
               </tr>
             </tbody>
           </table>
+        </section>
+
+        <section id="disclaimer">
+          <p class="section-kicker">Disclaimer</p>
+          <h2>Distributed as is.</h2>
+          <p>
+            Automify is provided "as is", without warranty of any kind. Automation can control browsers, shells,
+            desktops, files, and external services; you are responsible for how you configure and run it, and for any
+            events associated with that use. To the maximum extent permitted by law, the author is not liable for losses,
+            damages, data loss, service disruption, or other consequences arising from use of the software.
+          </p>
         </section>
       </article>
     </main>
