@@ -250,6 +250,30 @@ winget install --id Kitware.CMake --exact --source winget`
   }
 };
 
+const dockerCommands = {
+  linux: {
+    label: "Ubuntu Docker",
+    commands: `# Only for optional Docker CLI and Docker desktop support
+sudo apt-get update
+sudo apt-get install -y docker.io
+sudo systemctl enable --now docker
+sudo docker run hello-world
+sudo usermod -aG docker $USER`
+  },
+  mac: {
+    label: "Docker Desktop for Mac",
+    commands: `# Only for optional Docker CLI and Docker desktop support
+# Install Docker Desktop from Docker's official website:
+https://docs.docker.com/desktop/setup/install/mac-install/`
+  },
+  win: {
+    label: "Docker Desktop for Windows",
+    commands: `# Only for optional Docker CLI and Docker desktop support
+# Install Docker Desktop from Docker's official website:
+https://docs.docker.com/desktop/setup/install/windows-install/`
+  }
+};
+
 function enhanceCodeBlockCopyButtons() {
   for (const code of document.querySelectorAll("pre > code")) {
     const pre = code.parentElement;
@@ -304,7 +328,13 @@ document.addEventListener("click", async (event) => {
 
   if (button) {
     const code = codeCopyButton?.closest("pre")?.querySelector("code");
-    const installCode = installCopyButton ? document.querySelector("#install-os-commands") : null;
+    const installCopyTarget = installCopyButton?.getAttribute("data-install-copy");
+    const installCode =
+      installCopyTarget === "docker"
+        ? document.querySelector("#install-docker-commands")
+        : installCopyTarget === "os"
+          ? document.querySelector("#install-os-commands")
+          : null;
     const value = copyButton?.getAttribute("data-copy") ?? installCode?.textContent ?? code?.textContent ?? "";
 
     try {
@@ -331,7 +361,8 @@ document.addEventListener("click", async (event) => {
   if (installTab) {
     const os = installTab.getAttribute("data-install-os");
     const install = installCommands[os];
-    if (!install) return;
+    const docker = dockerCommands[os];
+    if (!install || !docker) return;
 
     for (const button of document.querySelectorAll("[data-install-os]")) {
       const active = button === installTab;
@@ -343,10 +374,14 @@ document.addEventListener("click", async (event) => {
     const label = document.querySelector("#install-os-shell-label");
     const commands = document.querySelector("#install-os-commands");
     const note = document.querySelector("#install-os-note");
+    const dockerLabel = document.querySelector("#install-docker-shell-label");
+    const dockerCommandsBlock = document.querySelector("#install-docker-commands");
     if (title) title.textContent = install.title;
     if (label) label.textContent = install.label;
     if (commands) commands.textContent = install.commands;
     if (note) note.textContent = install.note;
+    if (dockerLabel) dockerLabel.textContent = docker.label;
+    if (dockerCommandsBlock) dockerCommandsBlock.textContent = docker.commands;
     return;
   }
 

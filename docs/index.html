@@ -165,20 +165,16 @@ npx automify-install-desktop --force</code></pre>
             </div>
             <div class="install-shell install-shell-multiline">
               <div class="install-shell-bar">
-                <span>Ubuntu Docker</span>
+                <span id="install-docker-shell-label">Ubuntu Docker</span>
                 <button
                   class="copy-button"
                   type="button"
-                  data-copy='sudo apt-get update
-sudo apt-get install -y docker.io
-sudo systemctl enable --now docker
-sudo docker run hello-world
-sudo usermod -aG docker $USER'
+                  data-install-copy="docker"
                 >
                   Copy
                 </button>
               </div>
-              <pre><code># Only for optional Docker CLI and Docker desktop support
+              <pre><code id="install-docker-commands"># Only for optional Docker CLI and Docker desktop support
 sudo apt-get update
 sudo apt-get install -y docker.io
 sudo systemctl enable --now docker
@@ -207,16 +203,8 @@ sudo usermod -aG docker $USER</code></pre>
             desktop installer does not verify every native library. Linux local desktop requires X11/Xorg or Xvfb;
             Wayland is not supported. On Ubuntu, switch to an Xorg session before using local desktop if the current
             session is Wayland. Ubuntu 26.04 may also need the Playwright platform override shown in Step 1 until native
-            support lands.
-          </p>
-          <p>
-            Step 4 is only for Docker CLI and Docker desktop support. On macOS and Windows, use the official Docker
-            Desktop downloads:
-            <a href="https://docs.docker.com/desktop/setup/install/mac-install/">Mac</a> or
-            <a href="https://docs.docker.com/desktop/setup/install/windows-install/">Windows</a>. On Ubuntu, run the
-            terminal commands shown in Step 4. Use `docker.io`, not the `docker` package; `docker.io` provides the Docker
-            Engine/runtime and CLI. Log out and back in after `sudo usermod -aG docker $USER` to use Docker without
-            `sudo`.
+            support lands. Step 4 is only for Docker CLI and Docker desktop support; after sudo usermod -aG docker
+            $USER, log out and back in to use Docker without sudo.
           </p>
         </div>
       </div>
