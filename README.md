@@ -69,6 +69,37 @@ npm install zod
 
 Automify does not require Zod for `jsonOutput()` or any browser, CLI, or desktop runtime.
 
+### Optional Docker Setup
+
+Docker is required only for `automify.dockerCli()` and `automify.dockerComputer()`.
+
+On macOS and Windows, install Docker Desktop from the official Docker website:
+
+- macOS: <https://docs.docker.com/desktop/setup/install/mac-install/>
+- Windows: <https://docs.docker.com/desktop/setup/install/windows-install/>
+
+On Ubuntu, install Docker from the Ubuntu repositories:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io
+```
+
+Use `docker.io`, not the `docker` package. In Ubuntu packages, `docker.io` provides the Docker Engine/runtime and CLI.
+
+Start Docker on Ubuntu and enable it after reboot:
+
+```bash
+sudo systemctl enable --now docker
+sudo docker run hello-world
+```
+
+To run Docker commands without `sudo`, add your user to the `docker` group, then log out and back in:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
 ## Quick Start
 
 ```js
@@ -153,7 +184,7 @@ const cli = automify.cli({
 await cli.do("Run the tests and summarize failures");
 ```
 
-Use Docker CLI when command execution should happen inside an isolated container. Docker must be installed and running before you create the adapter:
+Use Docker CLI when command execution should happen inside an isolated container. Docker must be installed and running before you create the adapter. See [Optional Docker Setup](#optional-docker-setup) if you still need to install Docker:
 
 ```js
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
@@ -259,7 +290,7 @@ try {
 }
 ```
 
-For isolated Linux desktop computer use, use Docker. `dockerComputer()` can run from a macOS, Windows, or Linux host with Docker installed and running, but the desktop it controls inside the container is Linux. This is the recommended path when the host Linux session uses Wayland, because `localComputer()` does not support Wayland. Docker desktop does not use `automify-install-desktop`; it needs a running Docker daemon and an initial app command:
+For isolated Linux desktop computer use, use Docker. `dockerComputer()` can run from a macOS, Windows, or Linux host with Docker installed and running, but the desktop it controls inside the container is Linux. This is the recommended path when the host Linux session uses Wayland, because `localComputer()` does not support Wayland. Docker desktop does not use `automify-install-desktop`; it needs a running Docker daemon and an initial app command. See [Optional Docker Setup](#optional-docker-setup) if Docker is not installed yet:
 
 ```js
 import { initAutomify } from "automify";

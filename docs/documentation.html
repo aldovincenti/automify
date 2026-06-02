@@ -103,6 +103,27 @@ PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npm install automify</code></p
             The main `automify` package works without Zod. The Zod helper lives behind the separate `automify/zod`
             import and uses Zod as an optional peer dependency.
           </p>
+          <h3>Optional Docker setup</h3>
+          <p>
+            Docker is required only for `automify.dockerCli()` and `automify.dockerComputer()`. On macOS and Windows,
+            install Docker Desktop from the official Docker website:
+            <a href="https://docs.docker.com/desktop/setup/install/mac-install/">Docker Desktop for Mac</a> or
+            <a href="https://docs.docker.com/desktop/setup/install/windows-install/">Docker Desktop for Windows</a>.
+          </p>
+          <p>On Ubuntu, install Docker from the Ubuntu repositories:</p>
+          <pre><code>sudo apt-get update
+sudo apt-get install -y docker.io</code></pre>
+          <p>
+            Use `docker.io`, not the `docker` package. In Ubuntu packages, `docker.io` provides the Docker
+            Engine/runtime and CLI.
+          </p>
+          <p>Start Docker on Ubuntu and enable it after reboot:</p>
+          <pre><code>sudo systemctl enable --now docker
+sudo docker run hello-world</code></pre>
+          <p>
+            To run Docker commands without `sudo`, add your user to the `docker` group, then log out and back in:
+          </p>
+          <pre><code>sudo usermod -aG docker $USER</code></pre>
         </section>
 
         <section id="core">
@@ -706,7 +727,8 @@ await cli.do("Run tests and summarize any failures");</code></pre>
           <p>
             Use `automify.dockerCli()` when commands should run in an isolated Docker container instead of the host
             shell. Docker must be installed and running before you create the adapter. It supports the same command
-            policies and can mount a shared folder into the container.
+            policies and can mount a shared folder into the container. See <a href="#install">Optional Docker setup</a>
+            if Docker is not installed yet.
           </p>
           <pre><code>import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -769,7 +791,8 @@ try {
             Node.js process, so it targets macOS, Windows, or Linux depending on the host. On Linux, this means X11/Xorg
             or Xvfb; Wayland is not supported for local desktop control. `dockerComputer()` requires Docker to be
             installed and running, and can be started from any host that can run Docker Linux containers, but the desktop
-            it controls is always a Linux desktop inside the container.
+            it controls is always a Linux desktop inside the container. See <a href="#install">Optional Docker setup</a>
+            if Docker is not installed yet.
           </p>
           <table>
             <tbody>
