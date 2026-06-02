@@ -120,12 +120,12 @@ const browser = await automify.browser({
 });
 
 try {
-  const run = await browser.do("Extract the support email.", {
+  const run = await browser.do("Summarize what you see on the page.", {
     // Optional: structured result shape.
-    output: jsonOutput("support_contact", { email: "string" })
+    output: jsonOutput("page_summary", { title: "string", summary: "string" })
   });
 
-  console.log(run.parsed.email);
+  console.log(run.parsed.title, run.parsed.summary);
 } finally {
   await browser.close();
 }
@@ -208,6 +208,9 @@ winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override "-
 winget install --id Kitware.CMake --exact --source winget
 
 # macOS: Xcode Command Line Tools plus CMake on PATH.
+# If Homebrew is not installed, install it first:
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
 xcode-select --install
 brew install cmake
 
@@ -221,7 +224,7 @@ sudo dnf install -y gcc-c++ make cmake libXtst-devel libpng-devel
 sudo pacman -S --needed base-devel cmake libxtst libpng
 ```
 
-On Linux, install the full package list before running `npx automify-install-desktop`; the installer checks for command-line build tools but does not verify every native library package. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js.
+On Linux, install the full package list before running `npx automify-install-desktop`; the installer checks for command-line build tools but does not verify every native library package. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS, install Homebrew first if `brew` is not available, then install CMake with `brew install cmake`. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js.
 
 ```js
 import { initAutomify } from "automify";

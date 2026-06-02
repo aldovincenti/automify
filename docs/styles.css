@@ -408,7 +408,7 @@ h1 {
   flex-wrap: wrap;
   gap: 8px 12px;
   align-items: baseline;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .install-step-label span {
@@ -425,15 +425,35 @@ h1 {
 }
 
 .install-step-label strong {
+  flex: 1 1 auto;
   font-size: 15px;
   line-height: 1.2;
+  text-align: right;
 }
 
-.install-step pre {
+.install-step-badge {
+  display: inline-grid;
+  place-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 1px solid rgba(18, 18, 18, 0.28);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 850;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.install-shell pre {
+  border: 0;
+  border-radius: 0;
   min-height: 154px;
   padding: 16px;
+  background: #111;
   box-shadow: none;
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
@@ -533,7 +553,8 @@ h1 {
 
 .install-shell code {
   color: inherit;
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .copy-button {

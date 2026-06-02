@@ -219,7 +219,8 @@ try {
 
 const installCommands = {
   linux: {
-    title: "Optional Linux desktop dependencies",
+    title: "Linux desktop prerequisites",
+    label: "OS packages",
     note: "Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the desktop installer does not verify every native library. Ubuntu 26.04 may also need the Playwright platform override shown in Step 2 until native support lands.",
     commands: `# Only for optional local desktop support
 sudo apt-get update
@@ -229,14 +230,19 @@ sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-
 PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npx playwright install chromium`
   },
   mac: {
-    title: "Optional Mac desktop dependencies",
-    note: "Steps 2 and 3 are only for optional local desktop support. macOS may also ask for Accessibility and Screen Recording permissions when local desktop control starts.",
+    title: "Mac desktop prerequisites",
+    label: "Homebrew + CMake",
+    note: "Steps 2 and 3 are only for optional local desktop support. If Homebrew is not installed, install it first with the command shown in Step 2, then run brew install cmake. macOS may also ask for Accessibility and Screen Recording permissions when local desktop control starts.",
     commands: `# Only for optional local desktop support
+# If Homebrew is not installed, install it first:
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
 xcode-select --install
 brew install cmake`
   },
   win: {
-    title: "Optional Windows desktop dependencies",
+    title: "Windows desktop prerequisites",
+    label: "Build tools",
     note: "Steps 2 and 3 are only for optional local desktop support. Run these from a terminal where CMake and the Visual Studio C++ tools are available on PATH.",
     commands: `# Only for optional local desktop support
 winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
@@ -250,6 +256,7 @@ function enhanceCodeBlockCopyButtons() {
     if (!pre || pre.dataset.copyEnhanced === "true") continue;
     if (pre.closest(".hero-code")) continue;
     if (pre.closest(".example-response")) continue;
+    if (pre.closest(".install-shell")) continue;
 
     const button = document.createElement("button");
     button.className = "copy-button code-copy-button";
@@ -291,12 +298,14 @@ enhanceCodeBlockCopyButtons();
 
 document.addEventListener("click", async (event) => {
   const copyButton = event.target.closest("[data-copy]");
+  const installCopyButton = event.target.closest("[data-install-copy]");
   const codeCopyButton = event.target.closest(".code-copy-button");
-  const button = copyButton ?? codeCopyButton;
+  const button = copyButton ?? installCopyButton ?? codeCopyButton;
 
   if (button) {
     const code = codeCopyButton?.closest("pre")?.querySelector("code");
-    const value = copyButton?.getAttribute("data-copy") ?? code?.textContent ?? "";
+    const installCode = installCopyButton ? document.querySelector("#install-os-commands") : null;
+    const value = copyButton?.getAttribute("data-copy") ?? installCode?.textContent ?? code?.textContent ?? "";
 
     try {
       await copyText(value);
@@ -331,9 +340,11 @@ document.addEventListener("click", async (event) => {
     }
 
     const title = document.querySelector("#install-os-title");
+    const label = document.querySelector("#install-os-shell-label");
     const commands = document.querySelector("#install-os-commands");
     const note = document.querySelector("#install-os-note");
     if (title) title.textContent = install.title;
+    if (label) label.textContent = install.label;
     if (commands) commands.textContent = install.commands;
     if (note) note.textContent = install.note;
     return;

@@ -16,7 +16,6 @@
         <a href="#install">Install</a>
         <a href="#surfaces">Examples</a>
         <a href="#providers">Providers</a>
-        <a href="./demo.html">Demo</a>
         <a href="./documentation.html">Documentation</a>
         <a href="https://github.com/aldovincenti/automify">GitHub</a>
       </nav>
@@ -108,24 +107,32 @@ console.log(run.parsed); // { id: "8f14e45f-ceea-4b2d-91e7-7c7d5f6a2c9b", firstN
           <div class="install-step">
             <div class="install-step-label">
               <span>Step 2</span>
-              <strong id="install-os-title">Optional Linux desktop dependencies</strong>
+              <strong id="install-os-title">Linux desktop prerequisites</strong>
+              <em class="install-step-badge">Optional</em>
             </div>
-            <pre><code id="install-os-commands"># Only for optional local desktop support
+            <div class="install-shell install-shell-multiline">
+              <div class="install-shell-bar">
+                <span id="install-os-shell-label">OS packages</span>
+                <button class="copy-button" type="button" data-install-copy="os">Copy</button>
+              </div>
+              <pre><code id="install-os-commands"># Only for optional local desktop support
 sudo apt-get update
 sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev
 
 # Ubuntu 26.04 only, if Playwright blocks Chromium install
 PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npx playwright install chromium</code></pre>
+            </div>
           </div>
 
           <div class="install-step">
             <div class="install-step-label">
               <span>Step 3</span>
-              <strong>Install local desktop support</strong>
+              <strong>Install local desktop adapter</strong>
+              <em class="install-step-badge">Optional</em>
             </div>
             <div class="install-shell">
               <div class="install-shell-bar">
-                <span>optional</span>
+                <span>Desktop adapter</span>
                 <button class="copy-button" type="button" data-copy="npx automify-install-desktop">Copy</button>
               </div>
               <div class="install-shell-line">
