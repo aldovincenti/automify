@@ -4,6 +4,15 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  DESKTOP_RUNTIME_MANIFEST,
+  desktopRuntimeDir,
+  desktopRuntimeKey,
+  desktopRuntimeManifest,
+  desktopRuntimeNodeModules,
+  desktopRuntimeRefs
+} from "../src/lib/desktop-runtime.js";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 const buildRoot = process.env.AUTOMIFY_DESKTOP_BUILD_DIR
@@ -12,12 +21,10 @@ const buildRoot = process.env.AUTOMIFY_DESKTOP_BUILD_DIR
 const nutSource = join(buildRoot, "nut.js");
 const libnutSource = join(buildRoot, "libnut-core");
 const macPermissionsSource = join(buildRoot, "node-mac-permissions");
-const refs = {
-  nut: process.env.AUTOMIFY_DESKTOP_NUT_REF ?? "e413fa1f19a19c4631812e4e1eaf47aa732b5cbe",
-  libnutCore: process.env.AUTOMIFY_DESKTOP_LIBNUT_CORE_REF ?? "6bbe5825f1123bcd740117ca932c8b1c6cffb48c",
-  macPermissions: process.env.AUTOMIFY_DESKTOP_MAC_PERMISSIONS_REF ?? "6b6ddee993ddce5071b637e42f6ee1434150d0bb"
-};
-const nodeModules = join(root, "node_modules");
+const refs = desktopRuntimeRefs();
+const runtimeDir = desktopRuntimeDir();
+const runtimeNodeModules = desktopRuntimeNodeModules();
+const nodeModules = runtimeNodeModules;
 const nutScope = join(nodeModules, "@nut-tree");
 const platformPackageName = `@nut-tree/libnut-${process.platform}`;
 const platformPackageDir = join(nutScope, `libnut-${process.platform}`);
@@ -27,6 +34,8 @@ const runtimeDependencies = ["jimp@1.6.1", "node-abort-controller@3.1.1", "clipb
 
 console.log("Building official nut.js from source.");
 console.log(`Build directory: ${buildRoot}`);
+console.log(`Runtime directory: ${runtimeDir}`);
+console.log(`Runtime key: ${desktopRuntimeKey()}`);
 console.log(`nut.js ref: ${refs.nut}`);
 console.log(`libnut-core ref: ${refs.libnutCore}`);
 if (process.platform === "darwin") {
@@ -36,6 +45,8 @@ if (process.platform === "darwin") {
 checkBuildPrerequisites();
 
 mkdirSync(buildRoot, { recursive: true });
+mkdirSync(runtimeDir, { recursive: true });
+writeRuntimePackageJson();
 cloneOrPull("https://github.com/nut-tree/libnut-core.git", libnutSource, refs.libnutCore);
 cloneOrPull("https://github.com/nut-tree/nut.js.git", nutSource, refs.nut);
 if (process.platform === "darwin") {
@@ -69,7 +80,7 @@ writeLibnutImportBridge();
 runPnpm(["--filter", "@nut-tree/nut-js", "run", "compile"], { cwd: nutSource });
 patchNutJimpCompatibility();
 
-run("npm", ["install", "--no-save", ...runtimeDependencies], { cwd: root });
+run("npm", ["install", "--no-save", ...runtimeDependencies], { cwd: runtimeDir });
 
 installWorkspacePackage(join(nutSource, "core", "shared"), join(nutScope, "shared"));
 installWorkspacePackage(join(nutSource, "core", "provider-interfaces"), join(nutScope, "provider-interfaces"));
@@ -81,9 +92,20 @@ if (process.platform === "darwin") {
   installWorkspacePackage(macPermissionsSource, macPermissionsPackageDir);
 }
 
-run("node", ["-e", "import('@nut-tree/nut-js').then(() => console.log('nut.js source build import ok'))"], {
-  cwd: root
-});
+writeRuntimeManifest();
+run(
+  "node",
+  [
+    "-e",
+    `const { createRequire } = require("node:module");
+const { join } = require("node:path");
+const runtimeDir = process.argv[1];
+createRequire(join(runtimeDir, "automify-desktop-runtime.cjs"))("@nut-tree/nut-js");
+console.log("nut.js source build import ok");`,
+    runtimeDir
+  ],
+  { cwd: root }
+);
 
 function cloneOrPull(repo, target, ref) {
   if (existsSync(join(target, ".git"))) {
@@ -160,22 +182,26 @@ function resolveCommand(command) {
 function commandCandidates(command) {
   const candidates = [];
 
+  const npmCli = npmCliCandidate(command);
+  if (npmCli) candidates.push(npmCli);
+
   if (process.platform === "win32" && ["npm", "npx"].includes(command)) {
     candidates.push({ command: `${command}.cmd`, args: [] });
   }
-
-  const npmCli = npmCliCandidate(command);
-  if (npmCli) candidates.push(npmCli);
 
   candidates.push({ command, args: [] });
   return candidates;
 }
 
 function npmCliCandidate(command) {
-  if (!["npm", "npx"].includes(command) || !process.env.npm_execpath) return null;
-  if (command === "npm") return { command: process.execPath, args: [process.env.npm_execpath] };
+  if (!["npm", "npx"].includes(command)) return null;
 
-  const npxExecPath = join(dirname(process.env.npm_execpath), "npx-cli.js");
+  const npmExecPath =
+    process.env.npm_execpath ?? join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
+  if (!existsSync(npmExecPath)) return null;
+  if (command === "npm") return { command: process.execPath, args: [npmExecPath] };
+
+  const npxExecPath = join(dirname(npmExecPath), "npx-cli.js");
   if (!existsSync(npxExecPath)) return null;
   return { command: process.execPath, args: [npxExecPath] };
 }
@@ -402,6 +428,35 @@ function installWorkspacePackage(source, target) {
     filter: (file) =>
       !excludedDirs.some((excludedDir) => file === excludedDir || file.startsWith(`${excludedDir}${sep}`))
   });
+}
+
+function writeRuntimePackageJson() {
+  writeText(
+    join(runtimeDir, "package.json"),
+    `${JSON.stringify(
+      {
+        private: true,
+        name: "automify-desktop-runtime",
+        description: "Persistent native runtime cache for Automify local desktop support."
+      },
+      null,
+      2
+    )}\n`
+  );
+}
+
+function writeRuntimeManifest() {
+  writeText(
+    join(runtimeDir, DESKTOP_RUNTIME_MANIFEST),
+    `${JSON.stringify(
+      {
+        ...desktopRuntimeManifest(),
+        createdAt: new Date().toISOString()
+      },
+      null,
+      2
+    )}\n`
+  );
 }
 
 function run(command, args, options = {}) {

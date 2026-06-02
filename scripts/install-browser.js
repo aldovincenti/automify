@@ -9,6 +9,7 @@ if (process.env.AUTOMIFY_SKIP_BROWSER_INSTALL === "1" || process.env.PLAYWRIGHT_
 }
 
 const playwrightCli = join(dirname(require.resolve("playwright")), "cli.js");
+console.log("Automify: installing Playwright browser...");
 const result = spawnSync(process.execPath, [playwrightCli, "install", "chromium"], {
   cwd: process.cwd(),
   stdio: "inherit"

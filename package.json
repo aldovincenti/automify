@@ -36,7 +36,7 @@
     "SECURITY.md"
   ],
   "scripts": {
-    "postinstall": "node scripts/install-browser.js",
+    "postinstall": "node scripts/install-browser.js && node scripts/install-desktop-if-needed.js",
     "install:desktop": "node scripts/install-desktop.js",
     "docs:arguments": "node scripts/generate-argument-reference.js",
     "test": "node --test test/*.test.js",

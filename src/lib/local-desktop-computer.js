@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 import { readFile, unlink } from "node:fs/promises";
 import { execFile, spawn } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -8,6 +10,12 @@ import { promisify } from "node:util";
 import { AutomifyError } from "./errors.js";
 import { acquireAdapterLock } from "./adapter-locks.js";
 import { assertKnownOptions, normalizeLogFile, writeDebugLogFile } from "./runtime.js";
+import {
+  DESKTOP_RUNTIME_PACKAGE,
+  desktopRuntimeDir,
+  desktopRuntimeManifestMatches,
+  desktopRuntimeManifestPath
+} from "./desktop-runtime.js";
 
 const execFileAsync = promisify(execFile);
 const LOCAL_DESKTOP_OPTION_KEYS = new Set([
@@ -448,14 +456,37 @@ async function saveNutImageObject(nut, image, options = {}) {
 }
 
 async function importNut() {
+  let runtimeError;
   try {
-    return await import("@nut-tree/nut-js");
+    const runtimeNut = importNutFromDesktopRuntime();
+    if (runtimeNut) return runtimeNut;
   } catch (error) {
+    runtimeError = error;
+  }
+
+  try {
+    return await import(DESKTOP_RUNTIME_PACKAGE);
+  } catch (error) {
+    const runtimeSuffix = runtimeError ? ` Cached desktop runtime import failed: ${runtimeError.message}` : "";
     throw new AutomifyError(
-      `createLocalDesktopComputer requires the local desktop adapter dependency built from source. ${localDesktopInstallHelp()} After the OS prerequisites are available, run: npx automify-install-desktop`,
+      `createLocalDesktopComputer requires the local desktop adapter dependency built from source. ${localDesktopInstallHelp()} After the OS prerequisites are available, run: npx automify-install-desktop.${runtimeSuffix}`,
       { cause: error }
     );
   }
+}
+
+function importNutFromDesktopRuntime() {
+  const manifestPath = desktopRuntimeManifestPath();
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  } catch {
+    return null;
+  }
+  if (!desktopRuntimeManifestMatches(manifest)) return null;
+
+  const runtimeRequire = createRequire(join(desktopRuntimeDir(), "automify-desktop-runtime.cjs"));
+  return runtimeRequire(DESKTOP_RUNTIME_PACKAGE);
 }
 
 function normalizeLocalDesktopEnvironment(environment) {

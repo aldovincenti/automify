@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -11,6 +11,7 @@ import {
   createLocalDesktopComputer,
   executeLocalDesktopAction
 } from "../src/index.js";
+import { DESKTOP_RUNTIME_MANIFEST, desktopRuntimeDir, desktopRuntimeManifest } from "../src/lib/desktop-runtime.js";
 
 test("createLocalDesktopComputer builds a desktop adapter around nut.js", async () => {
   const events = [];
@@ -431,6 +432,51 @@ test("captureLocalDesktopScreenshot saves nut.js image objects as PNG bytes", as
   assert.equal(screenshot.toString(), "png-bytes");
   assert.equal(events[0][0], "capture");
   assert.equal(events[1][0], "saveImage");
+});
+
+test("captureLocalDesktopScreenshot loads nut.js from the persistent desktop runtime cache", async () => {
+  const previousRuntimeDir = process.env.AUTOMIFY_DESKTOP_RUNTIME_DIR;
+  const runtimeRoot = await mkdtemp(join(tmpdir(), "automify-desktop-runtime-"));
+  process.env.AUTOMIFY_DESKTOP_RUNTIME_DIR = runtimeRoot;
+
+  try {
+    const runtimeDir = desktopRuntimeDir();
+    const packageDir = join(runtimeDir, "node_modules", "@nut-tree", "nut-js");
+    await mkdir(packageDir, { recursive: true });
+    await writeFile(
+      join(runtimeDir, DESKTOP_RUNTIME_MANIFEST),
+      `${JSON.stringify(desktopRuntimeManifest(), null, 2)}\n`
+    );
+    await writeFile(
+      join(packageDir, "package.json"),
+      `${JSON.stringify({ name: "@nut-tree/nut-js", version: "0.0.0", main: "index.js" }, null, 2)}\n`
+    );
+    await writeFile(
+      join(packageDir, "index.js"),
+      `const { writeFileSync } = require("node:fs");
+module.exports = {
+  screen: {
+    async capture() {
+      return { width: 1, height: 1 };
+    }
+  },
+  async saveImage(_image, path) {
+    writeFileSync(path, Buffer.from("cached-png-bytes"));
+  }
+};
+`
+    );
+
+    const screenshot = await captureLocalDesktopScreenshot();
+
+    assert.equal(screenshot.toString(), "cached-png-bytes");
+  } finally {
+    if (previousRuntimeDir == null) {
+      delete process.env.AUTOMIFY_DESKTOP_RUNTIME_DIR;
+    } else {
+      process.env.AUTOMIFY_DESKTOP_RUNTIME_DIR = previousRuntimeDir;
+    }
+  }
 });
 
 test("captureLocalDesktopScreenshot supports public nut.js file capture API", async () => {
