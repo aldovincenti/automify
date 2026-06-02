@@ -15,6 +15,7 @@
       <nav class="nav" aria-label="Documentation navigation">
         <a href="./index.html">Home</a>
         <a href="#install">Install</a>
+        <a href="#disclaimer">Disclaimer</a>
         <a href="#providers">Models</a>
         <a href="#browser">Browser</a>
         <a href="#cli">CLI</a>
@@ -36,6 +37,7 @@
       <aside class="toc" aria-label="Documentation table of contents">
         <strong>On this page</strong>
         <a href="#install">Install</a>
+        <a href="#disclaimer">Disclaimer</a>
         <a href="#core">Core idea</a>
         <a href="#arguments">Argument shape</a>
         <a href="#environments">Environments</a>
@@ -124,6 +126,17 @@ sudo docker run hello-world</code></pre>
             To run Docker commands without `sudo`, add your user to the `docker` group, then log out and back in:
           </p>
           <pre><code>sudo usermod -aG docker $USER</code></pre>
+        </section>
+
+        <section id="disclaimer">
+          <p class="section-kicker">Disclaimer</p>
+          <h2>Distributed as is.</h2>
+          <p>
+            Automify is provided "as is", without warranty of any kind. Automation can control browsers, shells,
+            desktops, files, and external services; you are responsible for how you configure and run it, and for any
+            events associated with that use. To the maximum extent permitted by law, the author is not liable for losses,
+            damages, data loss, service disruption, or other consequences arising from use of the software.
+          </p>
         </section>
 
         <section id="core">
@@ -353,11 +366,11 @@ const desktop = await automify.localComputer();</code></pre>
               </tr>
               <tr>
                 <th>Browser/Desktop `limits.steps`</th>
-                <td>`1000`</td>
+                <td>`100`</td>
               </tr>
               <tr>
                 <th>CLI `limits.steps`</th>
-                <td>`1000`</td>
+                <td>`100`</td>
               </tr>
               <tr>
                 <th>CLI `approval`</th>
@@ -369,6 +382,32 @@ const desktop = await automify.localComputer();</code></pre>
               </tr>
             </tbody>
           </table>
+          <p>
+            `limits.steps` controls how many model-action turns a run may execute before Automify stops it with
+            `MaxStepsExceededError`. The default is `100` for browser, desktop, custom computer, CLI, and Docker CLI
+            surfaces. Set a higher value for long workflows, or a lower value when a task should fail fast.
+          </p>
+          <pre><code>// Set the default for every run created by this adapter.
+const browser = await automify.browser({
+  startUrl: "https://example.com",
+  limits: { steps: 250 }
+});
+
+await browser.do("Audit this long report workflow");
+
+// Override the limit for one run only.
+await browser.do("Do a quick smoke test", {
+  limits: { steps: 25 }
+});</code></pre>
+          <p>
+            The flat `maxSteps` option is equivalent to `limits.steps` and is kept for existing code. If both are
+            provided, `maxSteps` wins. Per-run options passed to `.do()` override the adapter default for that call only.
+          </p>
+          <pre><code>// Equivalent to limits: { steps: 250 }.
+const cli = automify.cli({ maxSteps: 250 });
+
+// Per-run maxSteps also works, and overrides the adapter default.
+await cli.do("Refactor and run tests", { maxSteps: 40 });</code></pre>
         </section>
 
         <section id="production-checklist">

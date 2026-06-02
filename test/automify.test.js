@@ -957,26 +957,20 @@ test("do enforces maxSteps", async () => {
   await assert.rejects(() => automify.do("Loop"), MaxStepsExceededError);
 });
 
-test("do defaults to a generous 1000 step limit", async () => {
-  let count = 0;
+test("do defaults to a bounded 100 step limit", async () => {
   const client = {
     async createResponse() {
-      count += 1;
-      if (count <= 27) {
-        return {
-          id: `resp_${count}`,
-          output: [
-            {
-              type: "computer_call",
-              call_id: `call_${count}`,
-              action: { type: "wait" },
-              pending_safety_checks: []
-            }
-          ]
-        };
-      }
-
-      return { id: "resp_done", output: [] };
+      return {
+        id: "resp_loop",
+        output: [
+          {
+            type: "computer_call",
+            call_id: "call_loop",
+            action: { type: "wait" },
+            pending_safety_checks: []
+          }
+        ]
+      };
     }
   };
 
@@ -988,10 +982,11 @@ test("do defaults to a generous 1000 step limit", async () => {
   };
 
   const automify = createAutomify({ client, computer, model: "test-computer-model" });
-  const result = await automify.do("Keep going");
 
-  assert.equal(result.completed, true);
-  assert.equal(result.steps.length, 27);
+  await assert.rejects(
+    () => automify.do("Keep going"),
+    (error) => error instanceof MaxStepsExceededError && error.maxSteps === 100
+  );
 });
 
 test("constructor requires an OpenAI API key when no custom client is provided", () => {

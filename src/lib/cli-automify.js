@@ -19,7 +19,7 @@ import {
   writeDebugLogFile
 } from "./runtime.js";
 
-const DEFAULT_MAX_STEPS = 1000;
+const DEFAULT_MAX_STEPS = 100;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const CLI_OPTION_KEYS = mergeOptionKeys(AUTOMIFY_OPTION_KEYS, [
   "command",

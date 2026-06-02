@@ -364,6 +364,27 @@ const run = await browser.do("Create the lead from data and return the saved rec
 - `evaluate` sends images or text files directly to the model.
 - `shared` and `sharedFiles` expose files inside Docker CLI or Docker desktop runs.
 - `jsonOutput()` requests structured JSON and makes parsed output available as `run.parsed`.
+- `limits.steps` controls the maximum model-action turns before `MaxStepsExceededError`. The default is `100`.
+
+Set max steps on an adapter when most runs need the same limit:
+
+```js
+const browser = await automify.browser({
+  startUrl: "https://example.com",
+  limits: { steps: 250 }
+});
+```
+
+Override it for one `.do()` call when a task needs a different limit:
+
+```js
+await browser.do("Quick smoke test", {
+  limits: { steps: 25 }
+});
+```
+
+The older flat option also works: `maxSteps: 250` is equivalent to `limits: { steps: 250 }`. If both are provided,
+`maxSteps` wins.
 
 For arrays of objects, the most ergonomic shape is usually an object with a named array property:
 
@@ -565,3 +586,7 @@ node --test test/e2e/live-openai.e2e.test.js
 ## License
 
 MIT
+
+## Disclaimer
+
+Automify is distributed "as is", without warranty of any kind. Automation can control browsers, shells, desktops, files, and external services; you are responsible for how you configure and run it, and for any events associated with that use. To the maximum extent permitted by law, the author is not liable for losses, damages, data loss, service disruption, or other consequences arising from use of the software.

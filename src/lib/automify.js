@@ -17,7 +17,7 @@ import {
   writeDebugLogFile
 } from "./runtime.js";
 
-const DEFAULT_MAX_STEPS = 1000;
+const DEFAULT_MAX_STEPS = 100;
 const DEFAULT_SCREENSHOT_DETAIL = "auto";
 const DEFAULT_SCREENSHOT_MAX_WIDTH = 1440;
 const DEFAULT_SCREENSHOT_MAX_HEIGHT = 1440;

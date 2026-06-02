@@ -14,7 +14,7 @@ export const argumentReference = [
       "command"
     ],
     notes:
-      "Use data for structured JSON, evaluate for files the model should inspect directly, and command only on CLI surfaces."
+      "Use data for structured JSON, evaluate for files the model should inspect directly, limits.steps to change the max model-action turns, and command only on CLI surfaces."
   },
   {
     surface: "automify.browser()",

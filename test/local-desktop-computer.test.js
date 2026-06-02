@@ -538,6 +538,80 @@ test("install-desktop skips when the persistent desktop runtime cache is compati
   assert.equal(result.stderr, "");
 });
 
+test("postinstall desktop helper skips rebuild when npm update keeps the runtime compatible", async () => {
+  const runtimeRoot = await mkdtemp(join(tmpdir(), "automify-desktop-runtime-update-skip-"));
+  const buildRoot = join(runtimeRoot, "unexpected-rebuild");
+  const env = {
+    ...process.env,
+    AUTOMIFY_DESKTOP_BUILD_DIR: buildRoot,
+    AUTOMIFY_DESKTOP_RUNTIME_DIR: runtimeRoot
+  };
+  delete env.AUTOMIFY_SKIP_DESKTOP_INSTALL;
+  delete env.AUTOMIFY_SKIP_DESKTOP_AUTO_REBUILD;
+
+  const runtimeDir = desktopRuntimeDir(env);
+  const packageDir = join(runtimeDir, "node_modules", "@nut-tree", "nut-js");
+
+  await mkdir(packageDir, { recursive: true });
+  await writeFile(
+    join(runtimeDir, DESKTOP_RUNTIME_MANIFEST),
+    `${JSON.stringify(desktopRuntimeManifest(env), null, 2)}\n`
+  );
+  await writeFile(
+    join(packageDir, "package.json"),
+    `${JSON.stringify({ name: "@nut-tree/nut-js" }, null, 2)}\n`
+  );
+
+  const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "install-desktop-if-needed.js")], {
+    cwd: process.cwd(),
+    env,
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "");
+  assert.equal(existsSync(buildRoot), false);
+});
+
+test("postinstall desktop helper rebuilds when npm update changes runtime compatibility", async () => {
+  const runtimeRoot = await mkdtemp(join(tmpdir(), "automify-desktop-runtime-update-rebuild-"));
+  const emptyPath = join(runtimeRoot, "empty-path");
+  const buildRoot = join(runtimeRoot, "rebuild");
+  const staleRuntimeDir = join(runtimeRoot, "old-runtime");
+  const staleManifest = desktopRuntimeManifest({
+    ...process.env,
+    AUTOMIFY_DESKTOP_RUNTIME_DIR: runtimeRoot,
+    AUTOMIFY_DESKTOP_NUT_REF: "old-nut-ref"
+  });
+  const env = {
+    ...process.env,
+    AUTOMIFY_DESKTOP_BUILD_DIR: buildRoot,
+    AUTOMIFY_DESKTOP_RUNTIME_DIR: runtimeRoot,
+    PATH: emptyPath,
+    Path: emptyPath
+  };
+  delete env.AUTOMIFY_SKIP_DESKTOP_INSTALL;
+  delete env.AUTOMIFY_SKIP_DESKTOP_AUTO_REBUILD;
+
+  await mkdir(emptyPath, { recursive: true });
+  await mkdir(staleRuntimeDir, { recursive: true });
+  await writeFile(join(staleRuntimeDir, DESKTOP_RUNTIME_MANIFEST), `${JSON.stringify(staleManifest, null, 2)}\n`);
+
+  const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "install-desktop-if-needed.js")], {
+    cwd: process.cwd(),
+    env,
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /previously installed but is not compatible/);
+  assert.match(result.stdout, /Rebuilding desktop runtime cache/);
+  assert.match(result.stdout, /Building official nut\.js from source/);
+  assert.match(result.stderr, /Missing required desktop build tool/);
+  assert.equal(existsSync(buildRoot), false);
+});
+
 test("captureLocalDesktopScreenshot supports public nut.js file capture API", async () => {
   const events = [];
   const nut = makeNut(events);
