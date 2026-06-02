@@ -53,12 +53,19 @@ const automify = initAutomify({
 
 const browser = await automify.browser({ startUrl: "https://aldovincenti.github.io/automify/demo.html" });
 
-const run = await browser.do("Add this person and return the saved record.", {
-  data: { firstName: "Ada", lastName: "Lovelace" },
-  output: jsonOutput("person_record", { id: "string", firstName: "string", lastName: "string" })
-});
+try {
+  const run = await browser.do("Add this person and return the saved record.", {
+    data: { firstName: "Ada", lastName: "Lovelace" },
+    output: jsonOutput("person_record", { id: "string", firstName: "string", lastName: "string" })
+  });
 
-console.log(run.parsed); // { id: "8f14e45f-ceea-4b2d-91e7-7c7d5f6a2c9b", firstName: "Ada", lastName: "Lovelace" }'
+  console.log(run.parsed); // { id: "8f14e45f-ceea-4b2d-91e7-7c7d5f6a2c9b", firstName: "Ada", lastName: "Lovelace" }
+} catch (error) {
+  console.error("Automation failed:", error);
+  process.exitCode = 1;
+} finally {
+  await browser.close();
+}'
               >
                 Copy
               </button>
@@ -75,12 +82,19 @@ const automify = initAutomify({
 
 const browser = await automify.browser({ startUrl: "https://aldovincenti.github.io/automify/demo.html" });
 
-const run = await browser.do("Add this person and return the saved record.", {
-  data: { firstName: "Ada", lastName: "Lovelace" },
-  output: jsonOutput("person_record", { id: "string", firstName: "string", lastName: "string" })
-});
+try {
+  const run = await browser.do("Add this person and return the saved record.", {
+    data: { firstName: "Ada", lastName: "Lovelace" },
+    output: jsonOutput("person_record", { id: "string", firstName: "string", lastName: "string" })
+  });
 
-console.log(run.parsed); // { id: "8f14e45f-ceea-4b2d-91e7-7c7d5f6a2c9b", firstName: "Ada", lastName: "Lovelace" }</code></pre>
+  console.log(run.parsed); // { id: "8f14e45f-ceea-4b2d-91e7-7c7d5f6a2c9b", firstName: "Ada", lastName: "Lovelace" }
+} catch (error) {
+  console.error("Automation failed:", error);
+  process.exitCode = 1;
+} finally {
+  await browser.close();
+}</code></pre>
           </div>
         </div>
       </div>
@@ -101,6 +115,8 @@ console.log(run.parsed); // { id: "8f14e45f-ceea-4b2d-91e7-7c7d5f6a2c9b", firstN
                 <span class="prompt">&gt;</span>
                 <code>npm install automify</code>
               </div>
+              <pre><code># Ubuntu 26.04 only, if Playwright blocks Chromium install
+PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npm install automify</code></pre>
             </div>
           </div>
 
@@ -117,10 +133,7 @@ console.log(run.parsed); // { id: "8f14e45f-ceea-4b2d-91e7-7c7d5f6a2c9b", firstN
               </div>
               <pre><code id="install-os-commands"># Only for optional local desktop support
 sudo apt-get update
-sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev
-
-# Ubuntu 26.04 only, if Playwright blocks Chromium install
-PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npx playwright install chromium</code></pre>
+sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev</code></pre>
             </div>
           </div>
 
@@ -139,6 +152,8 @@ PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npx playwright install chromiu
                 <span class="prompt">&gt;</span>
                 <code>npx automify-install-desktop</code>
               </div>
+              <pre><code># Rebuild an already-compatible desktop runtime
+npx automify-install-desktop --force</code></pre>
             </div>
           </div>
         </div>
@@ -159,8 +174,8 @@ PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npx playwright install chromiu
           </div>
           <p id="install-os-note">
             Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the
-            desktop installer does not verify every native library. Ubuntu 26.04 may also need the Playwright platform
-            override shown in Step 2 until native support lands.
+            desktop installer does not verify every native library. Ubuntu 26.04 may need the Playwright platform
+            override shown in Step 1 until native support lands.
           </p>
         </div>
       </div>
@@ -208,6 +223,9 @@ try {
   });
 
   console.log(run.parsed);
+} catch (error) {
+  console.error("Automation failed:", error);
+  process.exitCode = 1;
 } finally {
   await browser.close();
 }</code></pre>

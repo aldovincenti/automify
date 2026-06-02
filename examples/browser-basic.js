@@ -24,7 +24,10 @@ try {
       lastName: "string"
     })
   });
-  console.log(result.ok, result.parsed);
+  console.log(result.parsed);
+} catch (error) {
+  console.error("Automation failed:", error);
+  process.exitCode = 1;
 } finally {
   await browser.close();
 }

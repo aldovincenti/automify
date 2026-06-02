@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,7 +13,12 @@ import {
   createLocalDesktopComputer,
   executeLocalDesktopAction
 } from "../src/index.js";
-import { DESKTOP_RUNTIME_MANIFEST, desktopRuntimeDir, desktopRuntimeManifest } from "../src/lib/desktop-runtime.js";
+import {
+  DESKTOP_RUNTIME_MANIFEST,
+  desktopRuntimeDir,
+  desktopRuntimeManifest,
+  resetDesktopRuntimeInstallState
+} from "../src/lib/desktop-runtime.js";
 
 test("createLocalDesktopComputer builds a desktop adapter around nut.js", async () => {
   const events = [];
@@ -25,6 +32,7 @@ test("createLocalDesktopComputer builds a desktop adapter around nut.js", async 
   assert.match(computer.instructions, /Do not open or use Command\+Tab/);
   assert.match(computer.instructions, /Do not click as a probe/);
   assert.match(computer.instructions, /Use deterministic entry points/);
+  assert.match(computer.instructions, /confirm the terminal is idle and showing a prompt/);
 
   await computer.execute({ type: "click", x: 10, y: 20, button: "right" });
   await computer.execute({ type: "type", text: "hello" });
@@ -477,6 +485,57 @@ module.exports = {
       process.env.AUTOMIFY_DESKTOP_RUNTIME_DIR = previousRuntimeDir;
     }
   }
+});
+
+test("resetDesktopRuntimeInstallState removes stale nut.js packages before reinstalling runtime dependencies", async () => {
+  const runtimeRoot = await mkdtemp(join(tmpdir(), "automify-desktop-runtime-reset-"));
+  const env = { ...process.env, AUTOMIFY_DESKTOP_RUNTIME_DIR: runtimeRoot };
+  const runtimeDir = desktopRuntimeDir(env);
+  const staleNutPackage = join(runtimeDir, "node_modules", "@nut-tree", "nut-js", "package.json");
+  const runtimeDependency = join(runtimeDir, "node_modules", "jimp", "package.json");
+
+  await mkdir(join(runtimeDir, "node_modules", "@nut-tree", "nut-js"), { recursive: true });
+  await mkdir(join(runtimeDir, "node_modules", "jimp"), { recursive: true });
+  await writeFile(staleNutPackage, `${JSON.stringify({ dependencies: { "@nut-tree/shared": "workspace:*" } })}\n`);
+  await writeFile(runtimeDependency, `${JSON.stringify({ name: "jimp" })}\n`);
+  await writeFile(join(runtimeDir, "package-lock.json"), "{}\n");
+  await writeFile(join(runtimeDir, "npm-shrinkwrap.json"), "{}\n");
+
+  resetDesktopRuntimeInstallState(env);
+
+  assert.equal(existsSync(staleNutPackage), false);
+  assert.equal(existsSync(join(runtimeDir, "node_modules", "@nut-tree")), false);
+  assert.equal(existsSync(join(runtimeDir, "package-lock.json")), false);
+  assert.equal(existsSync(join(runtimeDir, "npm-shrinkwrap.json")), false);
+  assert.equal(existsSync(runtimeDependency), true);
+});
+
+test("install-desktop skips when the persistent desktop runtime cache is compatible", async () => {
+  const runtimeRoot = await mkdtemp(join(tmpdir(), "automify-desktop-runtime-skip-"));
+  const env = { ...process.env, AUTOMIFY_DESKTOP_RUNTIME_DIR: runtimeRoot };
+  const runtimeDir = desktopRuntimeDir(env);
+  const packageDir = join(runtimeDir, "node_modules", "@nut-tree", "nut-js");
+
+  await mkdir(packageDir, { recursive: true });
+  await writeFile(
+    join(runtimeDir, DESKTOP_RUNTIME_MANIFEST),
+    `${JSON.stringify(desktopRuntimeManifest(env), null, 2)}\n`
+  );
+  await writeFile(
+    join(packageDir, "package.json"),
+    `${JSON.stringify({ name: "@nut-tree/nut-js" }, null, 2)}\n`
+  );
+
+  const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "install-desktop.js")], {
+    cwd: process.cwd(),
+    env,
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /already installed and compatible; skipping rebuild/);
+  assert.match(result.stdout, /--force/);
+  assert.equal(result.stderr, "");
 });
 
 test("captureLocalDesktopScreenshot supports public nut.js file capture API", async () => {

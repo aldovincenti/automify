@@ -17,7 +17,7 @@ const desktop = automify.computer({
 });
 
 const instruction =
-  "Open the Calendar app installed on this computer, find the next event after today, and summarize it. Do not create or edit events.";
+  "Open the Calendar app installed on this computer, find the next event, and summarize it. Do not create or edit events.";
 
 await desktop.do(instruction, {
   screenshots: {

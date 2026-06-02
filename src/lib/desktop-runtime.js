@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -77,6 +77,13 @@ export function desktopRuntimeManifest(env = process.env) {
     runtimeDir: desktopRuntimeDir(env),
     compatibility: desktopRuntimeCompatibility(env)
   };
+}
+
+export function resetDesktopRuntimeInstallState(env = process.env) {
+  const runtimeDir = desktopRuntimeDir(env);
+  rmSync(join(desktopRuntimeNodeModules(env), "@nut-tree"), { recursive: true, force: true });
+  rmSync(join(runtimeDir, "package-lock.json"), { recursive: true, force: true });
+  rmSync(join(runtimeDir, "npm-shrinkwrap.json"), { recursive: true, force: true });
 }
 
 export function readDesktopRuntimeManifest(env = process.env) {

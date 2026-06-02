@@ -40,6 +40,9 @@ Full docs live at [aldovincenti.github.io/automify](https://aldovincenti.github.
 
 ```bash
 npm install automify
+
+# Ubuntu 26.04 only, if Playwright blocks Chromium install
+PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npm install automify
 ```
 
 Chromium is installed by the package `postinstall` script. Skip it with:
@@ -99,7 +102,10 @@ try {
     })
   });
 
-  console.log(run.ok, run.parsed.id, run.parsed.firstName, run.parsed.lastName);
+  console.log(run.parsed.id, run.parsed.firstName, run.parsed.lastName);
+} catch (error) {
+  console.error("Automation failed:", error);
+  process.exitCode = 1;
 } finally {
   await browser.close();
 }
@@ -226,7 +232,7 @@ sudo pacman -S --needed base-devel cmake libxtst libpng
 
 On Linux, install the full package list before running `npx automify-install-desktop`; the installer checks for command-line build tools but does not verify every native library package. On headless Linux hosts, also install `xvfb` unless you manage `DISPLAY` yourself. On macOS, install Homebrew first if `brew` is not available, then install CMake with `brew install cmake`. On macOS and Windows, `cmake --version` must work in the terminal where you run `npx automify-install-desktop`. On Windows, the VS Code CMake Tools extension is not enough by itself, and Visual Studio 2026 is not currently recognized by the native build chain used by nut.js.
 
-`npx automify-install-desktop` stores the compiled desktop runtime outside `node_modules` in a long-term cache, so normal `npm update` runs do not remove it. If a later `npm install` or `npm update` detects that a previously installed desktop runtime no longer matches the current platform, CPU architecture, Node ABI, or pinned nut.js/libnut revisions, Automify rebuilds it automatically during `postinstall`. Default cache roots are `%LOCALAPPDATA%\automify\desktop-runtime` on Windows, `~/Library/Caches/automify/desktop-runtime` on macOS, and `${XDG_CACHE_HOME:-~/.cache}/automify/desktop-runtime` on Linux. Override with `AUTOMIFY_DESKTOP_RUNTIME_DIR`; disable auto-rebuild with `AUTOMIFY_SKIP_DESKTOP_AUTO_REBUILD=1`.
+`npx automify-install-desktop` stores the compiled desktop runtime outside `node_modules` in a long-term cache, so normal `npm update` runs do not remove it. If the command is run again and the cached runtime already matches the current platform, CPU architecture, Node ABI, and pinned nut.js/libnut revisions, Automify prints a skip message and exits without rebuilding. Use `npx automify-install-desktop --force` (or `npx automify-install-desktop force`) to rebuild a compatible cache anyway. If a later `npm install` or `npm update` detects that a previously installed desktop runtime no longer matches the current environment, Automify rebuilds it automatically during `postinstall`. Default cache roots are `%LOCALAPPDATA%\automify\desktop-runtime` on Windows, `~/Library/Caches/automify/desktop-runtime` on macOS, and `${XDG_CACHE_HOME:-~/.cache}/automify/desktop-runtime` on Linux. Override with `AUTOMIFY_DESKTOP_RUNTIME_DIR`; disable auto-rebuild with `AUTOMIFY_SKIP_DESKTOP_AUTO_REBUILD=1`.
 
 ```js
 import { initAutomify } from "automify";
@@ -244,7 +250,7 @@ const desktop = await automify.localComputer();
 
 try {
   await desktop.do(
-    "Open the Calendar app installed on this computer, find the next event after today, and summarize it. Do not create or edit events."
+    "Open the Calendar app installed on this computer, find the next event, and summarize it. Do not create or edit events."
   );
 } finally {
   await desktop.close();

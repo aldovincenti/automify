@@ -7,10 +7,12 @@ import { fileURLToPath } from "node:url";
 import {
   DESKTOP_RUNTIME_MANIFEST,
   desktopRuntimeDir,
+  desktopRuntimeIsInstalled,
   desktopRuntimeKey,
   desktopRuntimeManifest,
   desktopRuntimeNodeModules,
-  desktopRuntimeRefs
+  desktopRuntimeRefs,
+  resetDesktopRuntimeInstallState
 } from "../src/lib/desktop-runtime.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -29,10 +31,21 @@ const nutScope = join(nodeModules, "@nut-tree");
 const platformPackageName = `@nut-tree/libnut-${process.platform}`;
 const platformPackageDir = join(nutScope, `libnut-${process.platform}`);
 const macPermissionsPackageDir = join(nutScope, "node-mac-permissions");
+const forceInstall = process.argv.slice(2).some((arg) => arg === "--force" || arg === "force");
 
 const runtimeDependencies = ["jimp@1.6.1", "node-abort-controller@3.1.1", "clipboardy@2.3.0", "bindings@1.5.0"];
 
+if (!forceInstall && desktopRuntimeIsInstalled()) {
+  console.log("Automify desktop runtime is already installed and compatible; skipping rebuild.");
+  console.log(`Runtime directory: ${runtimeDir}`);
+  console.log("Use `npx automify-install-desktop --force` to rebuild it anyway.");
+  process.exit(0);
+}
+
 console.log("Building official nut.js from source.");
+if (forceInstall) {
+  console.log("Force enabled: rebuilding the desktop runtime even if the cache is compatible.");
+}
 console.log(`Build directory: ${buildRoot}`);
 console.log(`Runtime directory: ${runtimeDir}`);
 console.log(`Runtime key: ${desktopRuntimeKey()}`);
@@ -46,6 +59,7 @@ checkBuildPrerequisites();
 
 mkdirSync(buildRoot, { recursive: true });
 mkdirSync(runtimeDir, { recursive: true });
+resetDesktopRuntimeInstallState();
 writeRuntimePackageJson();
 cloneOrPull("https://github.com/nut-tree/libnut-core.git", libnutSource, refs.libnutCore);
 cloneOrPull("https://github.com/nut-tree/nut.js.git", nutSource, refs.nut);

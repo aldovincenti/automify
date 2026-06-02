@@ -89,6 +89,8 @@
             Automify requires Node.js 20.12.2 or newer. Playwright is a dependency because browser automation is a
             built-in surface, and the package postinstall step installs Chromium automatically.
           </p>
+          <pre><code># Ubuntu 26.04 only, if Playwright blocks Chromium install
+PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npm install automify</code></pre>
           <pre><code>AUTOMIFY_SKIP_BROWSER_INSTALL=1 npm install automify</code></pre>
           <p>
             Use the environment variable above when your CI image or deployment environment manages browsers separately.
@@ -248,19 +250,22 @@ try {
 
         <section id="status">
           <p class="section-kicker">Status</p>
-          <h2>Know whether the automation loop succeeded.</h2>
+          <h2>Handle automation errors with the Promise.</h2>
           <p>
-            A resolved run means all requested model tool calls were executed without provider, adapter, safety, policy,
-            or max-step errors. Automify marks that with `ok: true` and `status: "succeeded"`.
+            A resolved run means the requested model tool loop finished without provider, adapter, safety, policy,
+            or max-step errors. If one of those fails, `.do()` rejects so regular `try`/`catch` is the primary error
+            boundary.
           </p>
-          <pre><code>const run = await browser.do("Submit the lead form");
+          <pre><code>try {
+  const run = await browser.do("Submit the lead form");
 
-if (run.ok) {
   console.log("Actions executed:", run.steps.length);
+} catch (error) {
+  console.error("Automation failed:", error);
 }</code></pre>
           <p>
-            If a click, command, domain rule, safety check, model request, or adapter action fails, `.do()` rejects
-            instead of returning a successful result.
+            Treat returned structured data as the business result you asked the model to produce. If you need to prove a
+            page or system actually changed, read back the saved data and compare it with your expected values.
           </p>
         </section>
 
@@ -429,7 +434,7 @@ const desktop = await automify.localComputer();</code></pre>
     output: jsonOutput("support_contact", { email: "string" })
   }
 );</code></pre>
-          <pre><code>console.log(run.ok, run.parsed.email);</code></pre>
+          <pre><code>console.log(run.parsed.email);</code></pre>
           <h3>Compact shape</h3>
           <p>The compact form is designed for the common case: a flat object where every listed field is required.</p>
           <pre><code>jsonOutput("created_lead", {
@@ -792,7 +797,7 @@ const automify = initAutomify({
 const desktop = await automify.localComputer();
 
 try {
-  const run = await desktop.do("Open the Calendar app installed on this computer, find the next event after today, and return its title and start time. Do not create or edit events.", {
+  const run = await desktop.do("Open the Calendar app installed on this computer, find the next event, and return its title and start time. Do not create or edit events.", {
     screenshots: {
       initial: "/tmp/automify-local-desktop-initial.png",
       final: "/tmp/automify-local-desktop-final.png"
@@ -810,8 +815,11 @@ try {
           <p>
             The desktop adapter is installed manually with `npx automify-install-desktop`; it is not installed by
             postinstall. The command builds nut.js, libnut-core, and macOS permission helpers from source, so it can take
-            some time. Local desktop control may require OS permissions. The adapter provides `execute(action, context)`
-            and `screenshot(context)` for native desktop control.
+            some time. If the command is run again and the cached runtime still matches the current platform, CPU
+            architecture, Node ABI, and pinned native refs, Automify prints a skip message and exits without rebuilding.
+            Use `npx automify-install-desktop --force` to rebuild a compatible cache anyway. Local desktop control may
+            require OS permissions. The adapter provides `execute(action, context)` and `screenshot(context)` for native
+            desktop control.
           </p>
           <p>
             Before running the installer, install the native build tools for your OS. On Windows, install Visual Studio
@@ -944,7 +952,8 @@ try {
           <p>
             Desktop source builds are pinned to known working nut.js, libnut-core, and node-mac-permissions commits.
             Override with `AUTOMIFY_DESKTOP_NUT_REF`, `AUTOMIFY_DESKTOP_LIBNUT_CORE_REF`, or
-            `AUTOMIFY_DESKTOP_MAC_PERMISSIONS_REF` when testing a newer upstream revision.
+            `AUTOMIFY_DESKTOP_MAC_PERMISSIONS_REF` when testing a newer upstream revision. Changing those refs changes
+            the desktop runtime compatibility key, so the next `npx automify-install-desktop` build will not be skipped.
           </p>
         </section>
 
@@ -1112,7 +1121,7 @@ try {
 // Reminder: local desktop support requires `npx automify-install-desktop` once for this project.
 const localDesktop = await automify.localComputer();
 try {
-  await localDesktop.do("Open the Calendar app installed on this computer, find the next event after today, and summarize it. Do not create or edit events.", {
+  await localDesktop.do("Open the Calendar app installed on this computer, find the next event, and summarize it. Do not create or edit events.", {
     screenshots: { final: "/tmp/local-final.png" }
   });
 } finally {
@@ -1138,9 +1147,10 @@ try {
           <p class="section-kicker">Completion</p>
           <h2>Use the Promise result, `onComplete`, or both.</h2>
           <p>
-            Every `.do()` returns a Promise that resolves when the requested tool loop succeeds. Use that for `run.ok`,
-            `run.status`, `run.steps`, `run.text`, and optional `run.parsed`. Register `onComplete` globally, per
-            surface, or per run when your app should react to completion together with the original input data.
+            Every `.do()` returns a Promise that resolves when the requested tool loop succeeds and rejects when the
+            provider, adapter, safety, policy, or step limit fails. Use the resolved result for `run.status`,
+            `run.steps`, `run.text`, and optional `run.parsed`. Register `onComplete` globally, per surface, or per run
+            when your app should react to completion together with the original input data.
           </p>
           <pre><code>const automify = initAutomify({
   provider: {

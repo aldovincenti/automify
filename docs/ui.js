@@ -35,6 +35,9 @@ try {
   });
 
   console.log(run.parsed);
+} catch (error) {
+  console.error("Automation failed:", error);
+  process.exitCode = 1;
 } finally {
   await browser.close();
 }`
@@ -156,7 +159,7 @@ const automify = initAutomify({
 const desktop = await automify.localComputer();
 
 try {
-  const run = await desktop.do("Open the Calendar app installed on this computer, find the next event after today, and return its title and start time. Do not create or edit events.", {
+  const run = await desktop.do("Open the Calendar app installed on this computer, find the next event, and return its title and start time. Do not create or edit events.", {
     screenshots: {
       actions: "/tmp/automify-local-actions",
       final: "/tmp/automify-local-final.png"
@@ -221,13 +224,10 @@ const installCommands = {
   linux: {
     title: "Linux desktop prerequisites",
     label: "OS packages",
-    note: "Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the desktop installer does not verify every native library. Ubuntu 26.04 may also need the Playwright platform override shown in Step 2 until native support lands.",
+    note: "Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the desktop installer does not verify every native library. Ubuntu 26.04 may need the Playwright platform override shown in Step 1 until native support lands.",
     commands: `# Only for optional local desktop support
 sudo apt-get update
-sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev
-
-# Ubuntu 26.04 only, if Playwright blocks Chromium install
-PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npx playwright install chromium`
+sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev`
   },
   mac: {
     title: "Mac desktop prerequisites",
