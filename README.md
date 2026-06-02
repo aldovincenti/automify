@@ -8,6 +8,8 @@
 
 `Automify` is a Node.js library for AI computer use and command use across web apps, terminals, native desktops, Docker CLI sandboxes, and Docker-backed Linux desktops.
 
+Created by [Aldo Vincenti](https://aldovincenti.com).
+
 Computer use surfaces:
 
 | Surface        | Factory                     | Controlled environment                                    |
