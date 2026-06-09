@@ -6,6 +6,7 @@ import { OpenAIResponsesClient } from "./openai-responses-client.js";
 import { toDataUrl } from "./adapter-toolkit.js";
 import { filesToEvaluate } from "./file-data.js";
 import { buildRunResult, buildTextConfig } from "./result.js";
+import { createTask } from "./task.js";
 import {
   callHook,
   debugLog,
@@ -359,6 +360,18 @@ export class Automify {
     } finally {
       this.silent = previousSilent;
     }
+  }
+
+  task(options = {}) {
+    return createTask(this, options);
+  }
+
+  addStep(instruction, options = {}) {
+    return this.task().addStep(instruction, options);
+  }
+
+  addWait(conditionOrMs, options = {}) {
+    return this.task().addWait(conditionOrMs, options);
   }
 
   async #initialInput(instruction, data, options, trace) {

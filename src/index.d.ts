@@ -774,9 +774,39 @@ export interface AutomifyCompleteEvent {
 export class Automify {
   constructor(options: AutomifyOptions);
   do(instruction: string, options?: DoOptions): Promise<AutomifyResult>;
+  task(options?: DoOptions): AutomifyTask;
+  addStep(instruction: string, options?: TaskStepOptions): AutomifyTask;
+  addWait(conditionOrMs?: string | number, options?: TaskStepOptions): AutomifyTask;
 }
 
 export function createAutomify(options: AutomifyOptions): Automify;
+
+export interface TaskStepOptions {
+  label?: string;
+  notes?: string;
+}
+
+export class AutomifyTask {
+  constructor(automify: Automify, options?: DoOptions);
+  addStep(instruction: string, options?: TaskStepOptions): this;
+  step(instruction: string, options?: TaskStepOptions): this;
+  addWait(conditionOrMs?: string | number, options?: TaskStepOptions): this;
+  wait(conditionOrMs?: string | number, options?: TaskStepOptions): this;
+  addObserve(instruction: string, options?: TaskStepOptions): this;
+  observe(instruction: string, options?: TaskStepOptions): this;
+  addExtract(instruction: string, options?: TaskStepOptions): this;
+  extract(instruction: string, options?: TaskStepOptions): this;
+  addAssert(instruction: string, options?: TaskStepOptions): this;
+  assert(instruction: string, options?: TaskStepOptions): this;
+  addData(data: Record<string, unknown> | unknown): this;
+  withData(data: Record<string, unknown> | unknown): this;
+  withOptions(options?: DoOptions): this;
+  toInstruction(): string;
+  run(options?: DoOptions): Promise<AutomifyResult>;
+  do(options?: DoOptions): Promise<AutomifyResult>;
+}
+
+export function createTask(automify: Automify, options?: DoOptions): AutomifyTask;
 
 export function createComputerAutomify(options: AutomifyOptions): Automify;
 

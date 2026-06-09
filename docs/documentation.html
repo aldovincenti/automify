@@ -236,6 +236,25 @@ try {
             `maxSteps`, `screenshots.final` to `finalScreenshot`, `command.allow` to `allowedCommands`, and
             `safety.domains` to `allowedDomains`.
           </p>
+          <h3>Build longer tasks as steps</h3>
+          <p>
+            Use the task builder when a workflow has distinct phases and should read like an ordered checklist. The
+            builder creates one `.do()` instruction, so data, output parsing, screenshots, hooks, safety options, and
+            limits behave the same as a normal run.
+          </p>
+          <pre><code>const run = await browser
+  .addStep("Open the contacts page.")
+  .addWait("the contacts table is visible")
+  .addStep("Create the lead from data.")
+  .addExtract("Return the saved record JSON.")
+  .addData({ firstName: "Ada", lastName: "Lovelace" })
+  .run({
+    output: jsonOutput("lead", { id: "string", firstName: "string", lastName: "string" })
+  });</code></pre>
+          <p>
+            Start with `browser.task()` when you want to keep a reusable builder. Alongside `addStep()`, Automify
+            provides `addWait()`, `addObserve()`, `addExtract()`, and `addAssert()` plus short aliases without `add`.
+          </p>
           <p>
             Adapter factories use the same grouped shape. Browser uses `startUrl`, `viewport`, `launch`, `context`,
             and `navigation`; CLI uses `command`; Docker-backed adapters use `container`, `desktop`, `shared`, and

@@ -1,4 +1,5 @@
 export { Automify, createAutomify, AutomifyError, SafetyCheckError, MaxStepsExceededError } from "./lib/automify.js";
+export { AutomifyTask, createTask } from "./lib/task.js";
 
 export { OpenAIResponsesClient } from "./lib/openai-responses-client.js";
 export { AnthropicModelAdapter, createAnthropicModelAdapter } from "./lib/anthropic-model-adapter.js";

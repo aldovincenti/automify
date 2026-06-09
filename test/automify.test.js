@@ -82,6 +82,43 @@ test("do sends an initial Responses computer-use request and executes returned a
   assert.equal(calls[1].input[0].output.detail, "auto");
 });
 
+test("task builder composes ordered step instructions and delegates to do", async () => {
+  const calls = [];
+  const automify = createAutomify({
+    client: {
+      async createResponse(payload) {
+        calls.push(payload);
+        return { id: "resp_done", output: [] };
+      }
+    },
+    model: "test-computer-model",
+    computer: {
+      displayWidth: 800,
+      displayHeight: 600,
+      environment: "browser",
+      execute() {},
+      screenshot() {
+        return Buffer.from("fake-png");
+      }
+    }
+  });
+
+  const result = await automify
+    .addStep("Open the contacts page.")
+    .addWait("the contacts table is visible")
+    .addStep("Return the first contact.", { label: "read" })
+    .addData({ accountId: "acct_123" })
+    .run();
+
+  const text = calls[0].input[0].content[0].text;
+  assert.equal(result.completed, true);
+  assert.match(text, /Follow these steps in order/);
+  assert.match(text, /1\. Open the contacts page\./);
+  assert.match(text, /2\. wait: Wait until the contacts table is visible\./);
+  assert.match(text, /3\. \[read\] Return the first contact\./);
+  assert.match(text, /"accountId": "acct_123"/);
+});
+
 test("Automify writes computer run events to logFile", async () => {
   const dir = await mkdtemp(join(tmpdir(), "automify-computer-logs-"));
   const logFile = join(dir, "computer.jsonl");

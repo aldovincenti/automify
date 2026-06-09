@@ -32,6 +32,7 @@ OpenAI and Anthropic models are supported, and any other model can be plugged in
 - Computer use for browser, local desktop, Docker desktop, QEMU virtual desktop, and custom computer adapters.
 - Command use for local CLI, Docker CLI, and QEMU virtual CLI runs.
 - One `.do()` loop: give the model a task, let it request actions, return a structured result.
+- Step-by-step task builders for longer workflows that should read like a checklist.
 - Structured task input with `data` and structured output with `jsonOutput()`.
 - Built-in OpenAI and Anthropic support, plus custom model adapters.
 - Practical guardrails: domain allowlists, command policies, screenshot controls, max steps, and hooks.
@@ -419,6 +420,43 @@ const run = await browser.do("Create the lead from data and return the saved rec
   screenshots: { final: "/tmp/automify-final.png" }
 });
 ```
+
+For longer workflows, build the task as ordered steps and run it at the end. This is useful when the task has
+distinct phases, such as navigate, wait, create, verify, and extract:
+
+```js
+const run = await browser
+  .addStep("Open the contacts page.")
+  .addWait("the contacts table is visible")
+  .addStep("Create the lead from data.")
+  .addExtract("Return the saved record JSON.")
+  .addData({ firstName: "Ada", lastName: "Lovelace" })
+  .run({
+    output: jsonOutput("lead", { id: "string", firstName: "string", lastName: "string" })
+  });
+```
+
+You can also start from `browser.task()` when you want to keep a reusable builder variable:
+
+```js
+const task = browser
+  .task({ limits: { steps: 30 } })
+  .addStep("Open the billing page.")
+  .addWait("the invoice list has finished loading")
+  .addObserve("Find the newest unpaid invoice.")
+  .addAssert("Confirm the customer name matches the data.")
+  .addExtract("Return the invoice id and total.")
+  .withData({ customerName: "Ada Lovelace" });
+
+const run = await task.run({
+  output: jsonOutput("invoice", { id: "string", total: "number" })
+});
+```
+
+Builder steps are converted into one ordered `.do()` instruction, so hooks, screenshots, output parsing, safety
+options, and limits behave the same as a normal run. `addStep()` is the general-purpose method; `addWait()`,
+`addObserve()`, `addExtract()`, and `addAssert()` add readable intent for common phases. Short aliases without `add`
+also work: `step()`, `wait()`, `observe()`, `extract()`, and `assert()`.
 
 - `data` is structured JSON for the task.
 - `evaluate` sends images or text files directly to the model.
