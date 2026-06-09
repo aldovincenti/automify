@@ -41,7 +41,9 @@ export class OpenAIResponsesClient {
         if (!response.ok) {
           const message = data?.error?.message ?? data?.message ?? response.statusText;
           const requestId = response.headers?.get?.("x-request-id") ?? response.headers?.get?.("openai-request-id");
-          const error = new AutomifyError(`OpenAI Responses request failed${requestId ? ` (${requestId})` : ""}: ${message}`);
+          const error = new AutomifyError(
+            `OpenAI Responses request failed${requestId ? ` (${requestId})` : ""}: ${message}`
+          );
           error.status = response.status;
           error.requestId = requestId;
           if (attempt < this.maxRetries && isRetryableStatus(response.status)) {
@@ -144,13 +146,18 @@ function isRetryableStatus(status) {
 }
 
 function isRetryableError(error) {
-  return error?.name === "AbortError" || error?.code === "ECONNRESET" || error?.code === "ETIMEDOUT" || /fetch failed/i.test(error?.message ?? "");
+  return (
+    error?.name === "AbortError" ||
+    error?.code === "ECONNRESET" ||
+    error?.code === "ETIMEDOUT" ||
+    /fetch failed/i.test(error?.message ?? "")
+  );
 }
 
 function retryDelay(attempt, baseDelayMs, retryAfter) {
   const retryAfterMs = Number(retryAfter) * 1000;
   if (Number.isFinite(retryAfterMs) && retryAfterMs > 0) return retryAfterMs;
-  return Math.max(0, Number(baseDelayMs) || 0) * (2 ** attempt);
+  return Math.max(0, Number(baseDelayMs) || 0) * 2 ** attempt;
 }
 
 function wait(ms) {

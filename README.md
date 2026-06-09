@@ -6,29 +6,31 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20.12.2-brightgreen.svg)](https://nodejs.org/)
 
-`Automify` is a Node.js library for AI computer use and command use across web apps, terminals, native desktops, Docker CLI sandboxes, and Docker-backed Linux desktops.
+`Automify` is a Node.js library for AI computer use and command use across web apps, terminals, native desktops, Docker sandboxes, and QEMU-backed virtual machines.
 
 Computer use surfaces:
 
-| Surface        | Factory                     | Controlled environment                                    |
-| -------------- | --------------------------- | --------------------------------------------------------- |
-| Browser        | `automify.browser()`        | Playwright browser with screenshots and actions           |
-| Desktop        | `automify.localComputer()`  | Native desktop on macOS, Windows, or Linux X11/Xorg hosts |
-| Docker desktop | `automify.dockerComputer()` | Linux desktop inside a running Docker container           |
+| Surface         | Factory                      | Controlled environment                                    |
+| --------------- | ---------------------------- | --------------------------------------------------------- |
+| Browser         | `automify.browser()`         | Playwright browser with screenshots and actions           |
+| Desktop         | `automify.localComputer()`   | Native desktop on macOS, Windows, or Linux X11/Xorg hosts |
+| Docker desktop  | `automify.dockerComputer()`  | Linux desktop inside a running Docker container           |
+| Virtual desktop | `automify.virtualComputer()` | Linux desktop inside a QEMU VM                            |
 
 Command use surfaces:
 
-| Surface    | Factory                | What it does                                          |
-| ---------- | ---------------------- | ----------------------------------------------------- |
-| CLI        | `automify.cli()`       | Terminal automation through model-requested commands  |
-| Docker CLI | `automify.dockerCli()` | Containerized terminal automation with running Docker |
+| Surface     | Factory                 | What it does                                          |
+| ----------- | ----------------------- | ----------------------------------------------------- |
+| CLI         | `automify.cli()`        | Terminal automation through model-requested commands  |
+| Docker CLI  | `automify.dockerCli()`  | Containerized terminal automation with running Docker |
+| Virtual CLI | `automify.virtualCli()` | Terminal automation inside a QEMU VM                  |
 
 OpenAI and Anthropic models are supported, and any other model can be plugged in with a custom provider adapter.
 
 ## What You Get
 
-- Computer use for browser, local desktop, Docker desktop, and custom computer adapters.
-- Command use for local CLI and Docker CLI runs.
+- Computer use for browser, local desktop, Docker desktop, QEMU virtual desktop, and custom computer adapters.
+- Command use for local CLI, Docker CLI, and QEMU virtual CLI runs.
 - One `.do()` loop: give the model a task, let it request actions, return a structured result.
 - Structured task input with `data` and structured output with `jsonOutput()`.
 - Built-in OpenAI and Anthropic support, plus custom model adapters.
@@ -98,6 +100,35 @@ To run Docker commands without `sudo`, add your user to the `docker` group, then
 
 ```bash
 sudo usermod -aG docker $USER
+```
+
+### Optional QEMU Setup
+
+QEMU is required only for `automify.virtualCli()`, `automify.virtualComputer()`, and `createVirtualDesktopComputer()`.
+When no image is configured, Automify downloads the official Debian genericcloud qcow2 image into a local cache, then prepares a reusable Automify-ready Debian qcow2 with the `automify` SSH user already provisioned. Runtime VMs boot from short-lived overlays backed by that prepared image. Pass `image` or `vm.image` only when you want to use your own bootable Linux disk image with SSH access.
+
+```bash
+# Ubuntu
+sudo apt-get install -y qemu-system qemu-utils
+
+# macOS
+brew install qemu
+
+# Windows
+# Install QEMU from https://www.qemu.org/download/
+```
+
+Pre-warm or refresh the default QEMU Debian cache:
+
+```bash
+# Pre-warm the minimal QEMU CLI cache.
+npx automify-qemu-image
+
+# Pre-warm the QEMU desktop cache with Xvfb/openbox/xterm/xdotool/scrot.
+npx automify-qemu-image --desktop
+
+# Re-download the Debian base image and rebuild the prepared cache.
+npx automify-qemu-image --force-download
 ```
 
 ## Quick Start
@@ -233,6 +264,25 @@ try {
 }
 ```
 
+Use QEMU virtual CLI when command execution should happen inside a real VM. QEMU must be installed. By default, Automify prepares a minimal Debian cloud image automatically; pass `image` or `vm.image` only to use a custom VM disk:
+
+```js
+const cli = automify.virtualCli({
+  vm: {
+    memory: "2g",
+    cpus: 2
+  },
+  additionalAptPackages: ["coreutils"],
+  shared: { hostPath: process.cwd(), containerPath: "/workspace" }
+});
+
+try {
+  await cli.do("Run 'node --version' and summarize the result");
+} finally {
+  await cli.close();
+}
+```
+
 ### Desktop Computer Use
 
 Local desktop computer use controls the native desktop on the machine running your Node.js process. It supports macOS, Windows, and Linux through the local desktop adapter. On Linux, local desktop support requires X11/Xorg or Xvfb; Wayland sessions are not supported. It needs native desktop dependencies that are not installed by default, and your OS may ask for permission to control the desktop.
@@ -311,7 +361,25 @@ try {
 }
 ```
 
-Local desktop computer use takes an exclusive cross-process lock until `close()`. Docker desktop locks are scoped to the container name, so different containers can run in parallel.
+For a real VM-backed Linux desktop, use QEMU. `virtualComputer()` starts a QEMU VM, connects over SSH, and controls an Xvfb desktop inside the guest with `xdotool` and `scrot`. By default, Automify prepares a minimal Debian cloud image automatically; pass `image` or `vm.image` only to use a custom VM disk:
+
+```js
+const desktop = await automify.virtualComputer({
+  vm: {
+    memory: "2g",
+    cpus: 2
+  },
+  desktop: { startupCommand: "xterm" }
+});
+
+try {
+  await desktop.do("Use the open terminal to run 'uname -a' and summarize the VM system information");
+} finally {
+  await desktop.close();
+}
+```
+
+Local desktop computer use takes an exclusive cross-process lock until `close()`. Docker desktop locks are scoped to the container name, and QEMU virtual desktop locks are scoped to the VM name.
 
 ### Custom Computer Use
 
@@ -327,7 +395,7 @@ await automify.computer({ computer }).do("Use the remote app with the supplied t
 });
 ```
 
-Custom computer adapters can expose `environment`, `displayWidth`, and `displayHeight` when they control a fixed remote target. Built-in local and Docker desktop adapters infer or choose those values for you.
+Custom computer adapters can expose `environment`, `displayWidth`, and `displayHeight` when they control a fixed remote target. Built-in local, Docker desktop, and QEMU virtual desktop adapters infer or choose those values for you.
 
 ## Input And Output
 
@@ -354,7 +422,7 @@ const run = await browser.do("Create the lead from data and return the saved rec
 
 - `data` is structured JSON for the task.
 - `evaluate` sends images or text files directly to the model.
-- `shared` and `sharedFiles` expose files inside Docker CLI or Docker desktop runs.
+- `shared` and `sharedFiles` expose files inside Docker CLI, Docker desktop, QEMU virtual CLI, or QEMU virtual desktop runs.
 - `jsonOutput()` requests structured JSON and makes parsed output available as `run.parsed`.
 - `limits.steps` controls the maximum model-action turns before `MaxStepsExceededError`. The default is `100`.
 
@@ -541,8 +609,10 @@ Use the adapter toolkit when a custom provider needs to emit computer use action
 - `examples/browser-with-safety.js`
 - `examples/cli-basic.js`
 - `examples/cli-docker.js`
+- `examples/cli-qemu.js`
 - `examples/desktop-local.js`
 - `examples/desktop-docker.js`
+- `examples/desktop-qemu.js`
 - `examples/custom-computer.js`
 - `examples/custom-model-adapter.js`
 
@@ -552,16 +622,22 @@ Use the adapter toolkit when a custom provider needs to emit computer use action
 npm test
 npm run test:e2e
 OPENAI_API_KEY=... npm run test:live
+npm run test:live:qemu
+npm run test:live:qemu:desktop
 ```
 
-`npm run test:live` runs `test/e2e/live-openai.e2e.test.js` with `RUN_OPENAI_E2E=1`. By default, it runs the live OpenAI CLI and Docker CLI checks and skips the browser and Docker desktop checks.
+`npm run test:live:qemu` runs only the real QEMU Debian boot smoke test, without OpenAI. `npm run test:live:qemu:desktop` runs the real QEMU desktop smoke test with the default Debian image. Set `AUTOMIFY_QEMU_IMAGE=/path/to/linux.qcow2` only when you want the desktop smoke test or the QEMU live tests to use a custom image. The equivalent direct flags are `RUN_QEMU_DEBIAN_E2E=1 npm run test:e2e` and `RUN_QEMU_DESKTOP_E2E=1 npm run test:e2e`.
+
+`npm run test:live` runs `test/e2e/live-openai.e2e.test.js` with `RUN_OPENAI_E2E=1`. By default, it runs the live OpenAI CLI and Docker CLI checks and skips the browser, Docker desktop, and QEMU checks.
 
 Run every live test:
 
 ```bash
 OPENAI_API_KEY=... \
 RUN_OPENAI_BROWSER_E2E=1 \
-RUN_OPENAI_VIRTUAL_DESKTOP_E2E=1 \
+RUN_OPENAI_DOCKER_DESKTOP_E2E=1 \
+RUN_OPENAI_QEMU_CLI_E2E=1 \
+RUN_OPENAI_QEMU_DESKTOP_E2E=1 \
 npm run test:live
 ```
 
@@ -571,9 +647,13 @@ The equivalent direct command is:
 OPENAI_API_KEY=... \
 RUN_OPENAI_E2E=1 \
 RUN_OPENAI_BROWSER_E2E=1 \
-RUN_OPENAI_VIRTUAL_DESKTOP_E2E=1 \
+RUN_OPENAI_DOCKER_DESKTOP_E2E=1 \
+RUN_OPENAI_QEMU_CLI_E2E=1 \
+RUN_OPENAI_QEMU_DESKTOP_E2E=1 \
 node --test test/e2e/live-openai.e2e.test.js
 ```
+
+Use `AUTOMIFY_QEMU_DEFAULT_IMAGE_URL` to point the default Debian download at a mirror, and `AUTOMIFY_QEMU_IMAGE_CACHE_DIR` to choose the cache directory. By default, Automify caches the downloaded Debian base image and prepared Automify-ready Debian images on the user's computer. The CLI cache stays minimal; the desktop cache is a separate variant that bakes Xvfb/openbox/xterm/xdotool/scrot so warm desktop boots do not reinstall apt packages. Configure image caching with `defaultImageCache`, for example `defaultImageCache: { dir: "/var/cache/automify-qemu", forcePrepare: true }`. Run `npx automify-qemu-image` to pre-warm the QEMU CLI cache. Run `npx automify-qemu-image --desktop` to pre-warm the QEMU desktop cache. Run `npx automify-qemu-image --force-download` to replace the cached base image and rebuild the prepared image. On ARM hosts Automify auto-detects common QEMU UEFI firmware paths; set `AUTOMIFY_QEMU_FIRMWARE` if your QEMU install keeps the firmware elsewhere.
 
 ## License
 

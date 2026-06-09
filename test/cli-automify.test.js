@@ -358,7 +358,10 @@ test("CliAutomify writes debug events to logFile", async () => {
 
   await cli.do("Echo ok");
 
-  const events = (await readFile(logFile, "utf8")).trim().split("\n").map((line) => JSON.parse(line));
+  const events = (await readFile(logFile, "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
   assert.ok(events.some((event) => event.scope === "automify:cli" && event.message === "command"));
   assert.ok(events.some((event) => event.scope === "automify:cli" && event.message === "command_result"));
 });
@@ -436,13 +439,10 @@ test("CliAutomify resolves and emits completion callbacks with input data", asyn
     onComplete: (event) => completions.push(["global", event])
   });
 
-  const result = await cli.do(
-    "Confirm command workflow",
-    {
-      data: { jobId: "job_1" },
-      onComplete: (event) => completions.push(["run", event])
-    }
-  );
+  const result = await cli.do("Confirm command workflow", {
+    data: { jobId: "job_1" },
+    onComplete: (event) => completions.push(["run", event])
+  });
 
   assert.equal(result.completed, true);
   assert.equal(completions.length, 2);

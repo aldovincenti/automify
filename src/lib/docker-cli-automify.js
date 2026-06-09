@@ -20,7 +20,7 @@ const execFileAsync = promisify(execFile);
 const DEFAULT_IMAGE = "debian:bookworm-slim";
 const DEFAULT_CWD = "/workspace";
 const DEFAULT_TIMEOUT_MS = 30_000;
-const VIRTUAL_CLI_OPTION_KEYS = mergeOptionKeys(AUTOMIFY_OPTION_KEYS, [
+const DOCKER_CLI_OPTION_KEYS = mergeOptionKeys(AUTOMIFY_OPTION_KEYS, [
   "preset",
   "command",
   "commands",
@@ -297,12 +297,8 @@ export class DockerCliSession {
   }
 }
 
-export const createVirtualCliAutomify = createDockerCliAutomify;
-export const VirtualCliAutomify = DockerCliAutomify;
-export const DockerVirtualCliSession = DockerCliSession;
-
 function normalizeVirtualCliOptions(options = {}) {
-  assertKnownOptions("Docker CLI adapter", options, VIRTUAL_CLI_OPTION_KEYS);
+  assertKnownOptions("Docker CLI adapter", options, DOCKER_CLI_OPTION_KEYS);
   assertKnownOptions("Docker CLI container", options.container, CONTAINER_OPTION_KEYS);
   options = applyDockerCliPreset(options);
   const container = options.container ?? {};

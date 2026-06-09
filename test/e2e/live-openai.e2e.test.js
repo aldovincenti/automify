@@ -9,7 +9,9 @@ import { createDockerDesktopComputer, filesToData, initAutomify, jsonOutput } fr
 
 const shouldRun = process.env.RUN_OPENAI_E2E === "1" && process.env.OPENAI_API_KEY;
 const shouldRunBrowserDemo = shouldRun && process.env.RUN_OPENAI_BROWSER_E2E === "1";
-const shouldRunVirtualDesktop = shouldRun && process.env.RUN_OPENAI_VIRTUAL_DESKTOP_E2E === "1";
+const shouldRunDockerDesktop = shouldRun && process.env.RUN_OPENAI_DOCKER_DESKTOP_E2E === "1";
+const shouldRunQemuCli = shouldRun && process.env.RUN_OPENAI_QEMU_CLI_E2E === "1";
+const shouldRunQemuDesktop = shouldRun && process.env.RUN_OPENAI_QEMU_DESKTOP_E2E === "1";
 const liveModel = process.env.OPENAI_MODEL ?? process.env.OPENAI_TEXT_MODEL ?? "gpt-5.5";
 const rootDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const liveDemoCliCommand = "node -e \"console.log('automify live cli ok')\"";
@@ -41,7 +43,6 @@ test(
     });
 
     const result = await cli.do("Run printf once to produce the text automify-live, then return it.", {
-      maxSteps: 4,
       output: jsonOutput("live_cli_result", {
         command: "string",
         stdout: "string",
@@ -91,7 +92,6 @@ test(
     });
 
     const run = await cli.do(`Run the allowed smoke command exactly once: ${liveDemoCliCommand}`, {
-      maxSteps: 4,
       output: jsonOutput("cli_smoke_result", {
         ok: "boolean",
         summary: "string"
@@ -165,7 +165,6 @@ test(
             "Use a Node.js command, then return the top region and total revenue."
           ].join(" "),
           {
-            maxSteps: 4,
             data: {
               files: await filesToData(reportPath, { format: "metadata" })
             },
@@ -197,6 +196,68 @@ test(
 );
 
 test(
+  "live demo: OpenAI runs a smoke command in a QEMU virtual CLI",
+  { skip: !shouldRunQemuCli, timeout: 600_000 },
+  async () => {
+    const qemu = qemuOptionsFromEnv();
+    const automify = initAutomify({
+      provider: {
+        type: "openai",
+        apiKey: process.env.OPENAI_API_KEY,
+        model: liveModel
+      },
+      silent: process.env.AUTOMIFY_LIVE_LOGS !== "1"
+    });
+    const commandSteps = [];
+    const cli = automify.virtualCli({
+      ...qemu,
+      vmName: `automify-live-qemu-cli-${Date.now()}`,
+      timeoutMs: 60_000,
+      startupTimeoutMs: 300_000,
+      command: {
+        allow: [/^uname -m$/]
+      },
+      onStep: (event) => {
+        if (event.phase === "after_command") commandSteps.push(event);
+      }
+    });
+
+    try {
+      const run = await cli.do(
+        [
+          "Call run_command exactly once with the exact command string: uname -m",
+          "Do not wrap it in sh, do not add flags, and do not run any other command.",
+          "Return the machine architecture from stdout."
+        ].join(" "),
+        {
+          output: jsonOutput("qemu_cli_smoke_result", {
+            machine: "string",
+            summary: "string"
+          })
+        }
+      );
+
+      assert.equal(run.completed, true);
+      assert.ok(run.response.id);
+      assert.equal(
+        commandSteps.length,
+        1,
+        `expected exactly one QEMU CLI command, got: ${commandSteps
+          .map((step) => step.command?.command)
+          .filter(Boolean)
+          .join(", ")}`
+      );
+      assert.equal(commandSteps[0].command.command, "uname -m");
+      assert.match(commandSteps[0].output.stdout, /\S/);
+      assert.match(run.parsed.machine, /\S/);
+      assert.match(run.parsed.summary, /\S/);
+    } finally {
+      await cli.close();
+    }
+  }
+);
+
+test(
   "live demo: OpenAI fills the browser demo page and returns the saved record",
   { skip: !shouldRunBrowserDemo, timeout: 180_000 },
   async () => {
@@ -215,7 +276,6 @@ test(
 
     try {
       const run = await browser.do("Add this person and return the saved record.", {
-        maxSteps: 12,
         data: { firstName: "Ada", lastName: "Lovelace" },
         output: jsonOutput("person_record", {
           id: "string",
@@ -239,14 +299,65 @@ test(
 );
 
 test(
+  "live demo: OpenAI uses the QEMU virtual desktop terminal example",
+  { skip: !shouldRunQemuDesktop, timeout: 600_000 },
+  async () => {
+    const qemu = qemuOptionsFromEnv();
+    const dir = await mkdtemp(join(tmpdir(), "automify-live-demo-qemu-desktop-"));
+    const finalScreenshot = join(dir, "final.png");
+    const automify = initAutomify({
+      provider: {
+        type: "openai",
+        apiKey: process.env.OPENAI_API_KEY,
+        model: liveModel
+      },
+      silent: process.env.AUTOMIFY_LIVE_LOGS !== "1"
+    });
+    const desktop = await automify.virtualComputer({
+      ...qemu,
+      vmName: `automify-live-qemu-desktop-${Date.now()}`,
+      startupTimeoutMs: 300_000,
+      commandTimeoutMs: 120_000,
+      desktop: {
+        startupCommand: "xterm"
+      },
+      silent: process.env.AUTOMIFY_LIVE_LOGS !== "1"
+    });
+
+    try {
+      const run = await desktop.do(
+        "Use the open terminal to run uname -m, then return the machine architecture shown on screen.",
+        {
+          finalScreenshot,
+          output: jsonOutput("qemu_system_info", {
+            machine: "string",
+            summary: "string"
+          })
+        }
+      );
+      const final = await readFile(finalScreenshot);
+
+      assertPng(final);
+      assert.equal(run.completed, true);
+      assert.ok(run.response.id);
+      assert.match(run.parsed.machine, /\S/);
+      assert.match(run.parsed.summary, /\S/);
+    } finally {
+      await desktop.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+);
+
+test(
   "live: OpenAI can inspect a real Chromium Docker desktop",
-  { skip: !shouldRunVirtualDesktop, timeout: 240_000 },
+  { skip: !shouldRunDockerDesktop, timeout: 240_000 },
   async () => {
     const dir = await mkdtemp(join(tmpdir(), "automify-live-docker-desktop-"));
     const initialScreenshot = join(dir, "initial.png");
     const finalScreenshot = join(dir, "final.png");
     const computer = await createDockerDesktopComputer({
-      image: process.env.AUTOMIFY_VIRTUAL_DESKTOP_IMAGE,
+      image: process.env.AUTOMIFY_DOCKER_DESKTOP_IMAGE,
       containerName: `automify-live-chromium-${Date.now()}`,
       startupTimeoutMs: 180_000,
       additionalAptPackages: ["chromium"],
@@ -271,7 +382,6 @@ test(
       const result = await desktop.do(
         "Look at the screenshot of the virtual Linux desktop. Report whether a Chromium browser window is visible. Do not navigate anywhere.",
         {
-          maxSteps: 4,
           initialScreenshot,
           finalScreenshot,
           output: jsonOutput("live_virtual_desktop_result", {
@@ -300,7 +410,7 @@ test(
 
 test(
   "live demo: OpenAI uses the Docker desktop terminal example",
-  { skip: !shouldRunVirtualDesktop, timeout: 240_000 },
+  { skip: !shouldRunDockerDesktop, timeout: 240_000 },
   async () => {
     const dir = await mkdtemp(join(tmpdir(), "automify-live-demo-docker-desktop-"));
     const finalScreenshot = join(dir, "final.png");
@@ -313,7 +423,7 @@ test(
       silent: process.env.AUTOMIFY_LIVE_LOGS !== "1"
     });
     const desktop = await automify.dockerComputer({
-      image: process.env.AUTOMIFY_VIRTUAL_DESKTOP_IMAGE,
+      image: process.env.AUTOMIFY_DOCKER_DESKTOP_IMAGE,
       containerName: `automify-live-terminal-${Date.now()}`,
       startupTimeoutMs: 180_000,
       desktop: {
@@ -326,7 +436,6 @@ test(
       const run = await desktop.do(
         "Use the open terminal to run uname -m, then return the machine architecture shown on screen.",
         {
-          maxSteps: 8,
           finalScreenshot,
           output: jsonOutput("system_info", {
             machine: "string",
@@ -353,4 +462,46 @@ function assertPng(buffer) {
   assert.equal(buffer[1], 0x50);
   assert.equal(buffer[2], 0x4e);
   assert.equal(buffer[3], 0x47);
+}
+
+function qemuOptionsFromEnv() {
+  const vm = {
+    image: process.env.AUTOMIFY_QEMU_IMAGE,
+    memory: process.env.AUTOMIFY_QEMU_MEMORY,
+    cpus: process.env.AUTOMIFY_QEMU_CPUS,
+    accel: process.env.AUTOMIFY_QEMU_ACCEL,
+    machine: process.env.AUTOMIFY_QEMU_MACHINE,
+    cpu: process.env.AUTOMIFY_QEMU_CPU,
+    firmware: process.env.AUTOMIFY_QEMU_FIRMWARE
+  };
+  for (const [key, value] of Object.entries(vm)) {
+    if (value == null || value === "") delete vm[key];
+  }
+
+  const ssh = {
+    user: process.env.AUTOMIFY_QEMU_SSH_USER,
+    keyPath: process.env.AUTOMIFY_QEMU_SSH_KEY
+  };
+  for (const [key, value] of Object.entries(ssh)) {
+    if (value == null || value === "") delete ssh[key];
+  }
+
+  const options = {
+    vm,
+    ssh,
+    qemuCommand: process.env.AUTOMIFY_QEMU_COMMAND,
+    qemuImgCommand: process.env.AUTOMIFY_QEMU_IMG_COMMAND,
+    qemuImageCacheDir: process.env.AUTOMIFY_QEMU_IMAGE_CACHE_DIR,
+    qemuImageUrl: process.env.AUTOMIFY_QEMU_DEFAULT_IMAGE_URL
+  };
+  if (process.env.AUTOMIFY_QEMU_SUDO != null) {
+    options.sudo = process.env.AUTOMIFY_QEMU_SUDO === "1";
+  }
+  for (const [key, value] of Object.entries(options)) {
+    if (value == null || value === "") delete options[key];
+  }
+  if (process.env.AUTOMIFY_QEMU_SSH_PORT) {
+    options.sshPort = Number(process.env.AUTOMIFY_QEMU_SSH_PORT);
+  }
+  return options;
 }

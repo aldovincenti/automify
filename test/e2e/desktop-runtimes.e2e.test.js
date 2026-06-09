@@ -5,10 +5,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { createComputerAutomify, createLocalDesktopComputer, createDockerDesktopComputer } from "../../src/index.js";
+import {
+  createComputerAutomify,
+  createDockerDesktopComputer,
+  createLocalDesktopComputer,
+  createVirtualDesktopComputer
+} from "../../src/index.js";
+
+const shouldRunQemuDesktop = process.env.RUN_QEMU_DESKTOP_E2E === "1" || Boolean(process.env.AUTOMIFY_QEMU_IMAGE);
 
 test("e2e: Docker desktop sandbox runs a complete computer-use loop", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "automify-e2e-virtual-final-"));
+  const dir = await mkdtemp(join(tmpdir(), "automify-e2e-docker-final-"));
   const finalScreenshot = join(dir, "final.png");
   const dockerCalls = [];
   const desktop = {
@@ -17,7 +24,7 @@ test("e2e: Docker desktop sandbox runs a complete computer-use loop", async () =
     screenshots: 0
   };
   const computer = await createDockerDesktopComputer({
-    containerName: "automify-e2e-virtual",
+    containerName: "automify-e2e-docker",
     startupCommand: "xterm",
     execFile: async (command, args, options) => {
       dockerCalls.push({ command, args, options });
@@ -106,7 +113,7 @@ test("e2e: Docker desktop sandbox runs a complete computer-use loop", async () =
     await rm(dir, { recursive: true, force: true });
   }
 
-  assert.deepEqual(dockerCalls.at(-1).args, ["rm", "-f", "automify-e2e-virtual"]);
+  assert.deepEqual(dockerCalls.at(-1).args, ["rm", "-f", "automify-e2e-docker"]);
 });
 
 test("e2e: local desktop adapter drives the model loop with a native dependency shim", async () => {
@@ -226,9 +233,9 @@ test("e2e: local desktop starts and closes Xvfb on Linux headless hosts", async 
 });
 
 test("e2e: Docker desktop can smoke-test a real Docker image when enabled", async (t) => {
-  const image = process.env.AUTOMIFY_VIRTUAL_DESKTOP_IMAGE;
+  const image = process.env.AUTOMIFY_DOCKER_DESKTOP_IMAGE;
   if (!image) {
-    t.skip("Set AUTOMIFY_VIRTUAL_DESKTOP_IMAGE to smoke-test a real Docker desktop container.");
+    t.skip("Set AUTOMIFY_DOCKER_DESKTOP_IMAGE to smoke-test a real Docker desktop container.");
     return;
   }
 
@@ -244,6 +251,38 @@ test("e2e: Docker desktop can smoke-test a real Docker image when enabled", asyn
   try {
     const { stdout } = await computer.session.exec(["sh", "-lc", "chromium --version"], { encoding: "utf8" });
     assert.match(stdout, /Chromium/i);
+
+    await computer.execute({ type: "move", x: 10, y: 10 });
+    await computer.execute({ type: "click", x: 10, y: 10 });
+    const screenshot = Buffer.from(await computer.screenshot());
+
+    assert.equal(screenshot[0], 0x89);
+    assert.equal(screenshot[1], 0x50);
+    assert.equal(screenshot[2], 0x4e);
+    assert.equal(screenshot[3], 0x47);
+  } finally {
+    await computer.close();
+  }
+});
+
+test("e2e: QEMU virtual desktop can smoke-test a real VM image when enabled", async (t) => {
+  if (!shouldRunQemuDesktop) {
+    t.skip("Set RUN_QEMU_DESKTOP_E2E=1 to use the default Debian QEMU image, or set AUTOMIFY_QEMU_IMAGE.");
+    return;
+  }
+
+  const qemu = qemuOptionsFromEnv();
+  const computer = await createVirtualDesktopComputer({
+    ...qemu,
+    vmName: `automify-e2e-qemu-${Date.now()}`,
+    startupTimeoutMs: 300_000,
+    commandTimeoutMs: 120_000,
+    startupCommand: "xterm"
+  });
+
+  try {
+    const { stdout } = await computer.session.runSsh("uname -m", { encoding: "utf8" });
+    assert.match(stdout, /\S/);
 
     await computer.execute({ type: "move", x: 10, y: 10 });
     await computer.execute({ type: "click", x: 10, y: 10 });
@@ -424,6 +463,48 @@ function makeNut(events) {
 function hasArgPair(args, key, value) {
   const index = args.indexOf(key);
   return index >= 0 && args[index + 1] === value;
+}
+
+function qemuOptionsFromEnv() {
+  const vm = {
+    image: process.env.AUTOMIFY_QEMU_IMAGE,
+    memory: process.env.AUTOMIFY_QEMU_MEMORY,
+    cpus: process.env.AUTOMIFY_QEMU_CPUS,
+    accel: process.env.AUTOMIFY_QEMU_ACCEL,
+    machine: process.env.AUTOMIFY_QEMU_MACHINE,
+    cpu: process.env.AUTOMIFY_QEMU_CPU,
+    firmware: process.env.AUTOMIFY_QEMU_FIRMWARE
+  };
+  for (const [key, value] of Object.entries(vm)) {
+    if (value == null || value === "") delete vm[key];
+  }
+
+  const ssh = {
+    user: process.env.AUTOMIFY_QEMU_SSH_USER,
+    keyPath: process.env.AUTOMIFY_QEMU_SSH_KEY
+  };
+  for (const [key, value] of Object.entries(ssh)) {
+    if (value == null || value === "") delete ssh[key];
+  }
+
+  const options = {
+    vm,
+    ssh,
+    qemuCommand: process.env.AUTOMIFY_QEMU_COMMAND,
+    qemuImgCommand: process.env.AUTOMIFY_QEMU_IMG_COMMAND,
+    qemuImageCacheDir: process.env.AUTOMIFY_QEMU_IMAGE_CACHE_DIR,
+    qemuImageUrl: process.env.AUTOMIFY_QEMU_DEFAULT_IMAGE_URL
+  };
+  if (process.env.AUTOMIFY_QEMU_SUDO != null) {
+    options.sudo = process.env.AUTOMIFY_QEMU_SUDO === "1";
+  }
+  for (const [key, value] of Object.entries(options)) {
+    if (value == null || value === "") delete options[key];
+  }
+  if (process.env.AUTOMIFY_QEMU_SSH_PORT) {
+    options.sshPort = Number(process.env.AUTOMIFY_QEMU_SSH_PORT);
+  }
+  return options;
 }
 
 function pngHeader(width, height) {

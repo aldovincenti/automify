@@ -54,6 +54,23 @@ export const argumentReference = [
       'Requires Docker to be installed and running. Use additionalAptPackages to apt-install packages before commands run. Use preset: "repo" to mount the current workspace at /workspace and allow common repo commands. Use logFile to capture CLI and Docker container events.'
   },
   {
+    surface: "automify.virtualCli()",
+    preferred: [
+      "preset",
+      "vm",
+      "ssh",
+      "defaultImageCache",
+      "additionalAptPackages",
+      "workdir",
+      "shared",
+      "sharedFiles",
+      "command",
+      "logFile"
+    ],
+    notes:
+      'Creates a QEMU-backed CLI runner. Without image or vm.image, Automify uses the prepared Debian image cache by default; use defaultImageCache to configure or refresh that cache. Use preset: "repo" to expose the current workspace at /workspace.'
+  },
+  {
     surface: "automify.dockerComputer()",
     preferred: [
       "preset",
@@ -67,6 +84,23 @@ export const argumentReference = [
     ],
     notes:
       "Creates a Docker-backed Linux desktop runner and requires Docker to be installed and running. Pass startupCommand or desktop.startupCommand to launch the initial app. Use additionalAptPackages to apt-install extra packages. Use logFile to capture automation and Docker desktop events. Explicit container names are locked per name until close()."
+  },
+  {
+    surface: "automify.virtualComputer()",
+    preferred: [
+      "preset",
+      "vm",
+      "ssh",
+      "viewport",
+      "desktop",
+      "defaultImageCache",
+      "additionalAptPackages",
+      "shared",
+      "sharedFiles",
+      "logFile"
+    ],
+    notes:
+      "Creates a QEMU-backed Linux desktop runner. Without image or vm.image, Automify uses the prepared Debian image cache by default. Pass startupCommand or desktop.startupCommand to launch the initial app; the guest runs Xvfb/openbox/xdotool/scrot over SSH."
   },
   {
     surface: "automify.localComputer()",
@@ -94,5 +128,22 @@ export const argumentReference = [
     ],
     notes:
       "Requires Docker to be installed and running. container controls Docker and resource limits; startupCommand or desktop.startupCommand is required; shared/sharedFiles control host file access. Use additionalAptPackages to apt-install extra packages and logFile to capture Docker desktop events."
+  },
+  {
+    surface: "createVirtualDesktopComputer()",
+    preferred: [
+      "preset",
+      "vm",
+      "ssh",
+      "viewport",
+      "desktop",
+      "defaultImageCache",
+      "additionalAptPackages",
+      "shared",
+      "sharedFiles",
+      "logFile"
+    ],
+    notes:
+      "Requires QEMU. Without image or vm.image, Automify uses the prepared Debian image cache by default. vm controls QEMU, custom images, resources, acceleration, and cache configuration; ssh controls login for custom images; startupCommand or desktop.startupCommand is required."
   }
 ];

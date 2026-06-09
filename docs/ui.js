@@ -141,6 +141,45 @@ try {
 }
 `
   },
+  virtualCli: {
+    title: "Virtual CLI",
+    description:
+      "Run command tasks inside a real QEMU VM. Requires QEMU; without an image override, Automify prepares a default Debian cloud image with SSH access.",
+    response: `{
+  nodeVersion: "v24.4.1",
+  cwd: "/workspace",
+  summary: "The QEMU VM ran Node from the shared workspace."
+}`,
+    code: `import { initAutomify, jsonOutput } from "automify";
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const cli = automify.virtualCli({
+  vm: { memory: "2g", cpus: 2 },
+  additionalAptPackages: ["coreutils"],
+  shared: { hostPath: process.cwd(), containerPath: "/workspace" }
+});
+
+try {
+  const run = await cli.do("Run 'node --version' and 'pwd', then summarize the VM environment.", {
+    output: jsonOutput("vm_command_result", {
+      nodeVersion: "string",
+      cwd: "string",
+      summary: "string"
+    })
+  });
+
+  console.log(run.parsed);
+} finally {
+  await cli.close();
+}`
+  },
   desktop: {
     title: "Desktop",
     description: "Use a local desktop through the same computer API. Linux requires X11/Xorg or Xvfb; Wayland is not supported.",
@@ -217,6 +256,50 @@ try {
 } finally {
   await desktop.close();
 }`
+  },
+  virtualDesktop: {
+    title: "Virtual desktop",
+    description:
+      "Control an Xvfb Linux desktop inside a real QEMU VM. Requires QEMU; without an image override, Automify prepares a default Debian cloud image with SSH access.",
+    response: `{
+  kernelName: "Linux",
+  machine: "aarch64",
+  summary: "The desktop terminal reports a Linux VM environment."
+}`,
+    code: `import { initAutomify, jsonOutput } from "automify";
+
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: "gpt-5.5"
+  }
+});
+
+const desktop = await automify.virtualComputer({
+  vm: { memory: "2g", cpus: 2 },
+  desktop: {
+    startupCommand: "xterm"
+  }
+});
+
+try {
+  const run = await desktop.do("Use the open terminal to run 'uname -a', then return the kernel name and machine architecture shown on screen.", {
+    screenshots: {
+      actions: "/tmp/automify-qemu-desktop-actions",
+      final: "/tmp/automify-qemu-desktop-final.png"
+    },
+    output: jsonOutput("system_info", {
+      kernelName: "string",
+      machine: "string",
+      summary: "string"
+    })
+  });
+
+  console.log(run.parsed);
+} finally {
+  await desktop.close();
+}`
   }
 };
 
@@ -224,7 +307,7 @@ const installCommands = {
   linux: {
     title: "Linux desktop prerequisites",
     label: "OS packages",
-    note: "Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the desktop installer does not verify every native library. Linux local desktop requires X11/Xorg or Xvfb; Wayland is not supported. On Ubuntu, switch to an Xorg session before using local desktop if the current session is Wayland. Ubuntu 26.04 may also need the Playwright platform override shown in Step 1 until native support lands. Step 4 is only for Docker CLI and Docker desktop support; after sudo usermod -aG docker $USER, log out and back in to use Docker without sudo.",
+    note: "Steps 2 and 3 are only for optional local desktop support. On Linux, install the full package list first; the desktop installer does not verify every native library. Linux local desktop requires X11/Xorg or Xvfb; Wayland is not supported. On Ubuntu, switch to an Xorg session before using local desktop if the current session is Wayland. Ubuntu 26.04 may also need the Playwright platform override shown in Step 1 until native support lands. Step 4 is only for Docker CLI and Docker desktop support. Step 5 is only for QEMU virtual CLI and virtual desktop support.",
     commands: `# Only for optional local desktop support
 sudo apt-get update
 sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-dev libpng++-dev`
@@ -232,7 +315,7 @@ sudo apt-get install -y git build-essential cmake pkg-config libx11-dev libxtst-
   mac: {
     title: "Mac desktop prerequisites",
     label: "Homebrew + CMake",
-    note: "Steps 2 and 3 are only for optional local desktop support. If Homebrew is not installed, install it first with the command shown in Step 2, then run brew install cmake. macOS may also ask for Accessibility and Screen Recording permissions when local desktop control starts. Step 4 is only for Docker CLI and Docker desktop support; on macOS, install Docker Desktop from Docker's official website.",
+    note: "Steps 2 and 3 are only for optional local desktop support. If Homebrew is not installed, install it first with the command shown in Step 2, then run brew install cmake. macOS may also ask for Accessibility and Screen Recording permissions when local desktop control starts. Step 4 is only for Docker CLI and Docker desktop support. Step 5 is only for QEMU virtual CLI and virtual desktop support.",
     commands: `# Only for optional local desktop support
 # If Homebrew is not installed, install it first:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -243,7 +326,7 @@ brew install cmake`
   win: {
     title: "Windows desktop prerequisites",
     label: "Build tools",
-    note: "Steps 2 and 3 are only for optional local desktop support. Run these from a terminal where CMake and the Visual Studio C++ tools are available on PATH. Step 4 is only for Docker CLI and Docker desktop support; on Windows, install Docker Desktop from Docker's official website.",
+    note: "Steps 2 and 3 are only for optional local desktop support. Run these from a terminal where CMake and the Visual Studio C++ tools are available on PATH. Step 4 is only for Docker CLI and Docker desktop support. Step 5 is only for QEMU virtual CLI and virtual desktop support.",
     commands: `# Only for optional local desktop support
 winget install --id Microsoft.VisualStudio.2022.BuildTools --exact --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
 winget install --id Kitware.CMake --exact --source winget`

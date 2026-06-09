@@ -161,6 +161,11 @@ export type DockerComputerAutomifyOptions = Omit<AutomifyOptions, "computer"> &
     computer?: ComputerAdapter & { session: DockerDesktopSession; sharedFolder?: VirtualSharedFolderData };
   };
 
+export type VirtualComputerAutomifyOptions = Omit<AutomifyOptions, "computer"> &
+  VirtualDesktopComputerOptions & {
+    computer?: ComputerAdapter & { session: QemuDesktopSession; sharedFolder?: VirtualSharedFolderData };
+  };
+
 export interface LocalComputerAutomifyOptions extends Omit<AutomifyOptions, "computer">, LocalDesktopComputerOptions {
   computer?: ComputerAdapter;
 }
@@ -381,7 +386,145 @@ export type DockerDesktopComputerOptions =
   | (DockerDesktopComputerBaseOptions & { startupCommand: string })
   | (DockerDesktopComputerBaseOptions & { desktop: DockerDesktopOptions });
 
-export type VirtualDesktopComputerOptions = DockerDesktopComputerOptions;
+export interface QemuSshOptions {
+  command?: string;
+  host?: string;
+  port?: number;
+  user?: string;
+  keyPath?: string;
+  options?: string[];
+  timeoutMs?: number;
+  sudo?: boolean;
+}
+
+export interface QemuVmOptions {
+  qemu?: string;
+  qemuCommand?: string;
+  qemuImgCommand?: string;
+  imageCacheDir?: string;
+  imageUrl?: string;
+  defaultImageCache?: QemuDefaultImageCacheOptions;
+  image?: string;
+  diskImage?: string;
+  diskFormat?: "qcow2" | "raw" | string;
+  name?: string;
+  existing?: boolean;
+  keep?: boolean;
+  memory?: number | string;
+  cpus?: number | string;
+  accel?: "hvf" | "kvm" | "whpx" | "tcg" | string;
+  machine?: string;
+  cpu?: string;
+  firmware?: string;
+  network?: boolean;
+  networkDevice?: string;
+  extraArgs?: string[];
+  timeoutMs?: number;
+}
+
+export type QemuDefaultImageCacheOptions =
+  | boolean
+  | {
+      /**
+       * Cache root for the downloaded base image and prepared image subdirectory.
+       */
+      dir?: string;
+      /**
+       * Cache directory for downloaded base images. Defaults to dir when provided.
+       */
+      imageCacheDir?: string;
+      /**
+       * Cache directory for Automify-ready prepared images. Defaults to `${dir}/prepared`.
+       */
+      preparedDir?: string;
+      /**
+       * Defaults to true. When true, Automify caches a booted Debian image with
+       * the automify SSH user already provisioned, then creates runtime overlays
+       * from that image.
+       */
+      prepared?: boolean;
+      /**
+       * Re-download the Debian base qcow2 and rebuild the prepared image.
+       */
+      forceDownload?: boolean;
+      /**
+       * Rebuild the prepared image even if one already exists.
+       */
+      forcePrepare?: boolean;
+    };
+
+export interface VirtualDesktopComputerBaseOptions {
+  preset?: VirtualDesktopPreset;
+  vm?: QemuVmOptions;
+  qemuCommand?: string;
+  qemuImgCommand?: string;
+  qemuImageCacheDir?: string;
+  qemuImageUrl?: string;
+  defaultImageCache?: QemuDefaultImageCacheOptions;
+  image?: string;
+  diskImage?: string;
+  diskFormat?: "qcow2" | "raw" | string;
+  vmName?: string;
+  existingVM?: boolean;
+  keepVM?: boolean;
+  start?: boolean;
+  ssh?: QemuSshOptions;
+  sshCommand?: string;
+  sshKeygenCommand?: string;
+  sshHost?: string;
+  sshPort?: number;
+  sshUser?: string;
+  sshKeyPath?: string;
+  sshOptions?: string[];
+  sshTimeoutMs?: number;
+  sudo?: boolean;
+  display?: string;
+  viewport?: ViewportOptions;
+  displayWidth?: number;
+  displayHeight?: number;
+  displayDepth?: number;
+  environment?: ComputerUseEnvironment;
+  instructions?: string;
+  desktop?: DockerDesktopOptions;
+  startupCommand?: string;
+  windowManagerCommand?: string;
+  installDependencies?: boolean;
+  desktopPackages?: string[];
+  additionalAptPackages?: string[];
+  memory?: number | string;
+  cpus?: number | string;
+  accel?: "hvf" | "kvm" | "whpx" | "tcg" | string;
+  machine?: string;
+  cpu?: string;
+  firmware?: string;
+  network?: boolean;
+  networkDevice?: string;
+  extraQemuArgs?: string[];
+  shared?: VirtualSharedFolderInput;
+  sharedFolder?: VirtualSharedFolderInput;
+  sharedFiles?: VirtualSharedFileInput[];
+  files?: VirtualSharedFileInput[];
+  sharedMode?: "virtfs" | "none" | string;
+  sharedTag?: string;
+  sharedSecurityModel?: string;
+  waitMs?: number;
+  startupTimeoutMs?: number;
+  qemuTimeoutMs?: number;
+  commandTimeoutMs?: number;
+  screenshotMaxBuffer?: number;
+  screenshotSettleMs?: number;
+  fetchImpl?: typeof fetch;
+  execFile?: (...args: unknown[]) => Promise<{ stdout?: Buffer | string; stderr?: Buffer | string }>;
+  spawn?: (...args: unknown[]) => unknown;
+  silent?: boolean;
+  debug?: DebugLogger;
+  logFile?: string;
+  onUnknownAction?: (action: ComputerAction, context?: Record<string, unknown>) => Promise<void> | void;
+}
+
+export type VirtualDesktopComputerOptions =
+  | (VirtualDesktopComputerBaseOptions & { startupCommand: string })
+  | (VirtualDesktopComputerBaseOptions & { desktop: DockerDesktopOptions });
 
 export type VirtualSharedFolderInput =
   | true
@@ -427,7 +570,17 @@ export class DockerDesktopSession {
   close(): Promise<void>;
 }
 
-export { DockerDesktopSession as DockerVirtualDesktopSession };
+export class QemuDesktopSession {
+  constructor(options?: VirtualDesktopComputerOptions);
+  readonly name: string;
+  readonly display: string;
+  readonly width: number;
+  readonly height: number;
+  start(): Promise<void>;
+  execute(action: ComputerAction): Promise<void>;
+  screenshot(): Promise<Buffer>;
+  close(): Promise<void>;
+}
 
 export interface OpenAIProviderConfig {
   type: "openai";
@@ -642,7 +795,10 @@ export interface InitializedAutomify {
   localComputer(
     options?: Omit<LocalComputerAutomifyOptions, "openaiApiKey" | "client">
   ): Promise<LocalComputerAutomify>;
-  virtualCli(options?: Omit<DockerCliAutomifyOptions, "openaiApiKey" | "client">): DockerCliAutomify;
+  virtualComputer(
+    options?: Omit<VirtualComputerAutomifyOptions, "openaiApiKey" | "client">
+  ): Promise<VirtualComputerAutomify>;
+  virtualCli(options?: Omit<VirtualCliAutomifyOptions, "openaiApiKey" | "client">): VirtualCliAutomify;
   computer(options: Omit<AutomifyOptions, "openaiApiKey" | "client">): Automify;
   custom(options: Omit<AutomifyOptions, "openaiApiKey" | "client">): Automify;
 }
@@ -720,6 +876,12 @@ export class DockerComputerAutomify extends Automify {
   close(): Promise<void>;
 }
 
+export class VirtualComputerAutomify extends Automify {
+  session: QemuDesktopSession;
+  sharedFolder?: VirtualSharedFolderData;
+  close(): Promise<void>;
+}
+
 export class LocalComputerAutomify extends Automify {
   close(): Promise<void>;
 }
@@ -730,6 +892,9 @@ export function withBrowserAutomify<T>(
   run: (automify: BrowserAutomify) => Promise<T> | T
 ): Promise<T>;
 export function createDockerComputerAutomify(options?: DockerComputerAutomifyOptions): Promise<DockerComputerAutomify>;
+export function createVirtualComputerAutomify(
+  options?: VirtualComputerAutomifyOptions
+): Promise<VirtualComputerAutomify>;
 export function createLocalComputerAutomify(options?: LocalComputerAutomifyOptions): Promise<LocalComputerAutomify>;
 
 export function createLocalDesktopComputer(options?: LocalDesktopComputerOptions): Promise<ComputerAdapter>;
@@ -740,12 +905,11 @@ export function createDockerDesktopComputer(
   options?: DockerDesktopComputerOptions
 ): Promise<ComputerAdapter & { session: DockerDesktopSession; sharedFolder?: VirtualSharedFolderData }>;
 export function createVirtualDesktopComputer(
-  options?: DockerDesktopComputerOptions
-): Promise<ComputerAdapter & { session: DockerDesktopSession; sharedFolder?: VirtualSharedFolderData }>;
+  options?: VirtualDesktopComputerOptions
+): Promise<ComputerAdapter & { session: QemuDesktopSession; sharedFolder?: VirtualSharedFolderData }>;
 export function defaultDockerDesktopImage(): string;
 export function defaultVirtualDesktopImage(): string;
 export function dockerDesktopDockerfile(): string;
-export function virtualDesktopDockerfile(): string;
 
 export interface CliAutomifyOptions extends Omit<InitAutomifyOptions, "model" | "onComplete"> {
   preset?: CliPreset;
@@ -936,7 +1100,60 @@ export interface DockerCliAutomifyOptions extends CliAutomifyOptions {
   execFile?: (...args: unknown[]) => Promise<{ stdout?: Buffer | string; stderr?: Buffer | string }>;
 }
 
-export type VirtualCliAutomifyOptions = DockerCliAutomifyOptions;
+export interface VirtualCliAutomifyOptions extends CliAutomifyOptions {
+  preset?: VirtualCliPreset;
+  session?: QemuCliSession;
+  vm?: QemuVmOptions;
+  qemuCommand?: string;
+  qemuImgCommand?: string;
+  qemuImageCacheDir?: string;
+  qemuImageUrl?: string;
+  defaultImageCache?: QemuDefaultImageCacheOptions;
+  image?: string;
+  diskImage?: string;
+  diskFormat?: "qcow2" | "raw" | string;
+  vmName?: string;
+  existingVM?: boolean;
+  keepVM?: boolean;
+  workdir?: string;
+  workspacePath?: string;
+  guestCwd?: string;
+  startupCommand?: string;
+  packages?: string[];
+  additionalAptPackages?: string[];
+  installDependencies?: boolean;
+  memory?: number | string;
+  cpus?: number | string;
+  accel?: "hvf" | "kvm" | "whpx" | "tcg" | string;
+  machine?: string;
+  cpu?: string;
+  firmware?: string;
+  network?: boolean;
+  networkDevice?: string;
+  extraQemuArgs?: string[];
+  ssh?: QemuSshOptions;
+  sshCommand?: string;
+  sshKeygenCommand?: string;
+  sshHost?: string;
+  sshPort?: number;
+  sshUser?: string;
+  sshKeyPath?: string;
+  sshOptions?: string[];
+  sshTimeoutMs?: number;
+  sudo?: boolean;
+  shared?: VirtualSharedFolderInput;
+  sharedFolder?: VirtualSharedFolderInput;
+  sharedFiles?: VirtualSharedFileInput[];
+  files?: VirtualSharedFileInput[];
+  sharedMode?: "virtfs" | "none" | string;
+  sharedTag?: string;
+  sharedSecurityModel?: string;
+  startupTimeoutMs?: number;
+  qemuTimeoutMs?: number;
+  commandMaxBuffer?: number;
+  execFile?: (...args: unknown[]) => Promise<{ stdout?: Buffer | string; stderr?: Buffer | string }>;
+  spawn?: (...args: unknown[]) => unknown;
+}
 
 export class DockerCliSession {
   constructor(options?: DockerCliAutomifyOptions);
@@ -958,10 +1175,29 @@ export class DockerCliAutomify extends CliAutomify {
   close(): Promise<void>;
 }
 
-export { DockerCliAutomify as VirtualCliAutomify, DockerCliSession as DockerVirtualCliSession };
-
 export function createDockerCliAutomify(options: DockerCliAutomifyOptions): DockerCliAutomify;
-export function createVirtualCliAutomify(options: DockerCliAutomifyOptions): DockerCliAutomify;
+export class QemuCliSession {
+  constructor(options?: VirtualCliAutomifyOptions);
+  readonly name: string;
+  readonly cwd: string;
+  readonly sharedFolder?: { data: VirtualSharedFolderData };
+  start(): Promise<void>;
+  run(
+    command: string,
+    options?: { cwd?: string; env?: Record<string, string>; timeoutMs?: number }
+  ): Promise<Record<string, unknown>>;
+  close(): Promise<void>;
+}
+export { QemuCliSession as QemuVirtualCliSession };
+
+export class VirtualCliAutomify extends CliAutomify {
+  session: QemuCliSession;
+  readonly sharedFolder?: VirtualSharedFolderData;
+  do(instruction: string, options?: CliAutomifyDoOptions): Promise<CliAutomifyResult>;
+  close(): Promise<void>;
+}
+
+export function createVirtualCliAutomify(options: VirtualCliAutomifyOptions): VirtualCliAutomify;
 
 export class OpenAIResponsesClient {
   constructor(options: {

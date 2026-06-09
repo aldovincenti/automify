@@ -36,7 +36,7 @@ const DEFAULT_INSTRUCTIONS = [
   "If the target is not visible, choose a deterministic recovery path: direct URL, terminal command, launcher/search, in-app search, visible navigation, or a screenshot/wait when loading is visible. Do not repeat nearly identical clicks after no visible change.",
   "After any action that launches an app, navigates, submits input, changes windows, or might trigger loading, use the next screenshot to decide the next step. Stop when the requested result is known; do not keep interacting to confirm unnecessarily."
 ].join("\n");
-const VIRTUAL_DESKTOP_OPTION_KEYS = new Set([
+const DOCKER_DESKTOP_OPTION_KEYS = new Set([
   "preset",
   "container",
   "dockerCommand",
@@ -90,8 +90,8 @@ const VIRTUAL_DESKTOP_OPTION_KEYS = new Set([
   "logFile",
   "onUnknownAction"
 ]);
-export const DOCKER_DESKTOP_COMPUTER_OPTION_KEYS = VIRTUAL_DESKTOP_OPTION_KEYS;
-const VIRTUAL_DESKTOP_CONTAINER_KEYS = new Set([
+export const DOCKER_DESKTOP_COMPUTER_OPTION_KEYS = DOCKER_DESKTOP_OPTION_KEYS;
+const DOCKER_DESKTOP_CONTAINER_KEYS = new Set([
   "docker",
   "dockerCommand",
   "image",
@@ -120,7 +120,7 @@ const VIRTUAL_DESKTOP_CONTAINER_KEYS = new Set([
   "additionalAptPackages",
   "installDependencies"
 ]);
-const VIRTUAL_DESKTOP_DESKTOP_KEYS = new Set([
+const DOCKER_DESKTOP_DESKTOP_KEYS = new Set([
   "startupCommand",
   "windowManagerCommand",
   "packages",
@@ -514,9 +514,6 @@ export class DockerDesktopSession {
   }
 }
 
-export const createVirtualDesktopComputer = createDockerDesktopComputer;
-export const DockerVirtualDesktopSession = DockerDesktopSession;
-
 async function acquireDockerDesktopLock(options) {
   if (!options.containerName) return null;
   return acquireAdapterLock(`docker-desktop:${options.containerName}`, {
@@ -525,9 +522,9 @@ async function acquireDockerDesktopLock(options) {
 }
 
 function normalizeVirtualDesktopOptions(options = {}) {
-  assertKnownOptions("Docker desktop adapter", options, VIRTUAL_DESKTOP_OPTION_KEYS);
-  assertKnownOptions("Docker desktop container", options.container, VIRTUAL_DESKTOP_CONTAINER_KEYS);
-  assertKnownOptions("Docker desktop desktop", options.desktop, VIRTUAL_DESKTOP_DESKTOP_KEYS);
+  assertKnownOptions("Docker desktop adapter", options, DOCKER_DESKTOP_OPTION_KEYS);
+  assertKnownOptions("Docker desktop container", options.container, DOCKER_DESKTOP_CONTAINER_KEYS);
+  assertKnownOptions("Docker desktop desktop", options.desktop, DOCKER_DESKTOP_DESKTOP_KEYS);
   options = applyDockerDesktopPreset(options);
   const container = options.container ?? {};
   const viewport = options.viewport ?? {};
@@ -603,9 +600,6 @@ RUN apt-get update \\
 export function defaultDockerDesktopImage() {
   return DEFAULT_IMAGE;
 }
-
-export const virtualDesktopDockerfile = dockerDesktopDockerfile;
-export const defaultVirtualDesktopImage = defaultDockerDesktopImage;
 
 function keys(values) {
   const normalized = values.map((value) => key(value)).filter(Boolean);

@@ -49,11 +49,14 @@ test("createModelAdapter accepts adapter factories", async () => {
 });
 
 test("createModelAdapter accepts function factories", async () => {
-  const adapter = createModelAdapter((options) => ({
-    async respond(payload) {
-      return { id: "resp_1", output: [], payload, options };
-    }
-  }), { endpoint: "local" });
+  const adapter = createModelAdapter(
+    (options) => ({
+      async respond(payload) {
+        return { id: "resp_1", output: [], payload, options };
+      }
+    }),
+    { endpoint: "local" }
+  );
 
   const response = await adapter.createResponse({ model: "custom" });
 
@@ -74,7 +77,7 @@ test("initAutomify uses a custom provider adapter with requestOptions and contex
         }
       }
     },
-    requestOptions: { temperature: 0.2, metadata: { source: "test" } },
+    requestOptions: { temperature: 0.2, metadata: { source: "test" } }
   });
   const cli = automify.cli({
     runner: async () => ({ exitCode: 0, stdout: "", stderr: "" })

@@ -6,7 +6,7 @@
     <title>Automify Documentation</title>
     <meta
       name="description"
-      content="Detailed Automify documentation for browser, CLI, Docker CLI, and desktop automation with providers, structured outputs, shared files, callbacks, defaults, and safety controls."
+      content="Detailed Automify documentation for browser, CLI, Docker, QEMU VM, and desktop automation with providers, structured outputs, shared files, callbacks, defaults, and safety controls."
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -113,6 +113,32 @@ sudo docker run hello-world</code></pre>
             To run Docker commands without `sudo`, add your user to the `docker` group, then log out and back in:
           </p>
           <pre><code>sudo usermod -aG docker $USER</code></pre>
+          <h3>Optional QEMU setup</h3>
+          <p>
+            QEMU is required only for `automify.virtualCli()`, `automify.virtualComputer()`, and
+            `createVirtualDesktopComputer()`. When no image is configured, Automify downloads the official Debian
+            genericcloud qcow2 image into a local cache, prepares a reusable Automify-ready Debian qcow2 with the
+            `automify` SSH user already provisioned. Runtime VMs boot from short-lived overlays backed by that prepared
+            image. Pass `image` or `vm.image` only when you want to use your own bootable Linux disk image with SSH
+            access.
+          </p>
+          <pre><code># Ubuntu
+sudo apt-get install -y qemu-system qemu-utils
+
+# macOS
+brew install qemu
+
+# Windows
+# Install QEMU from https://www.qemu.org/download/</code></pre>
+          <p>Pre-warm or refresh the default QEMU Debian cache:</p>
+          <pre><code># Pre-warm the minimal QEMU CLI cache.
+npx automify-qemu-image
+
+# Pre-warm the QEMU desktop cache with Xvfb/openbox/xterm/xdotool/scrot.
+npx automify-qemu-image --desktop
+
+# Re-download the Debian base image and rebuild the prepared cache.
+npx automify-qemu-image --force-download</code></pre>
         </section>
 
         <section id="core">
@@ -213,10 +239,10 @@ try {
           <p>
             Adapter factories use the same grouped shape. Browser uses `startUrl`, `viewport`, `launch`, `context`,
             and `navigation`; CLI uses `command`; Docker-backed adapters use `container`, `desktop`, `shared`, and
-            `sharedFiles`; local desktop uses `viewport`, `mouse`, `keyboard`, `calibration`, and `virtualDisplay`.
-            Linux local desktop requires X11/Xorg or Xvfb; Wayland is not supported.
-            Automify validates adapter option names at runtime and suggests likely fixes. Docker-backed APIs are named
-            explicitly; older virtual aliases are still exported for existing code. The generated Markdown reference is
+            `sharedFiles`; QEMU-backed adapters use `vm`, `ssh`, `desktop`, `shared`, and `sharedFiles`; local desktop
+            uses `viewport`, `mouse`, `keyboard`, `calibration`, and `virtualDisplay`. Linux local desktop requires
+            X11/Xorg or Xvfb; Wayland is not supported. Automify validates adapter option names at runtime and suggests
+            likely fixes. Docker-backed and QEMU-backed APIs are named explicitly. The generated Markdown reference is
             `docs/argument-reference.md`.
           </p>
           <table>
@@ -236,9 +262,10 @@ try {
                 </td>
               </tr>
               <tr>
-                <th>Docker computer</th>
+                <th>Virtual CLI</th>
                 <td>
-                  `preset`, `container`, `viewport`, `desktop`, `shared`, `sharedFiles`; requires Docker to be running
+                  `preset`, `vm`, `ssh`, `workdir`, `shared`, `sharedFiles`, `command`; requires QEMU and uses a
+                  default Debian cloud image unless `image` or `vm.image` is provided
                 </td>
               </tr>
               <tr>
@@ -251,11 +278,19 @@ try {
                   `preset`, `container`, `viewport`, `desktop`, `shared`, `sharedFiles`; requires Docker to be running
                 </td>
               </tr>
+              <tr>
+                <th>Virtual desktop</th>
+                <td>
+                  `preset`, `vm`, `ssh`, `viewport`, `desktop`, `shared`, `sharedFiles`; requires QEMU and uses a
+                  default Debian cloud image unless `image` or `vm.image` is provided
+                </td>
+              </tr>
             </tbody>
           </table>
           <p>
-            Presets are optional shortcuts: `repo` for CLI/Docker CLI, `browser-review` for browser inspection, and
-            `desktop-review` for a review-friendly Docker desktop viewport and settle timing.
+            Presets are optional shortcuts: `repo` for CLI, Docker CLI, and virtual CLI; `browser-review` for browser
+            inspection; and `desktop-review` for review-friendly Docker desktop and virtual desktop viewport and settle
+            timing.
           </p>
         </section>
 
@@ -384,8 +419,9 @@ const desktop = await automify.localComputer();</code></pre>
           </table>
           <p>
             `limits.steps` controls how many model-action turns a run may execute before Automify stops it with
-            `MaxStepsExceededError`. The default is `100` for browser, desktop, custom computer, CLI, and Docker CLI
-            surfaces. Set a higher value for long workflows, or a lower value when a task should fail fast.
+            `MaxStepsExceededError`. The default is `100` for browser, desktop, custom computer, CLI, Docker CLI, and
+            QEMU virtual CLI surfaces. Set a higher value for long workflows, or a lower value when a task should fail
+            fast.
           </p>
           <pre><code>// Set the default for every run created by this adapter.
 const browser = await automify.browser({
@@ -820,18 +856,40 @@ try {
   await cli.close();
 }
 </code></pre>
+          <p>
+            Use `automify.virtualCli()` when commands should run inside a real QEMU VM instead of the host shell or a
+            Docker container. QEMU must be installed. Without an image override, Automify boots short-lived overlays
+            from the cached prepared Debian image. It supports the same command policies as local CLI and Docker CLI,
+            plus `shared` / `sharedFiles` for workspace access.
+          </p>
+<pre><code>const cli = automify.virtualCli({
+  vm: { memory: "2g", cpus: 2 },
+  additionalAptPackages: ["coreutils"],
+  shared: { hostPath: process.cwd(), containerPath: "/workspace" },
+  command: {
+    allow: ["node --version", "pwd"]
+  }
+});
+
+try {
+  const run = await cli.do("Run 'node --version' and 'pwd', then summarize the VM environment.");
+  console.log(run.text);
+} finally {
+  await cli.close();
+}</code></pre>
         </section>
 
         <section id="desktop">
           <p class="section-kicker">Desktop</p>
           <h2>Desktop automation supports local and sandboxed Linux sessions.</h2>
           <p>
-            There are two desktop modes. `localComputer()` controls the native desktop on the machine running your
+            There are three desktop modes. `localComputer()` controls the native desktop on the machine running your
             Node.js process, so it targets macOS, Windows, or Linux depending on the host. On Linux, this means X11/Xorg
             or Xvfb; Wayland is not supported for local desktop control. `dockerComputer()` requires Docker to be
             installed and running, and can be started from any host that can run Docker Linux containers, but the desktop
-            it controls is always a Linux desktop inside the container. See <a href="#install">Optional Docker setup</a>
-            if Docker is not installed yet.
+            it controls is always a Linux desktop inside the container. `virtualComputer()` requires QEMU and uses a
+            default Debian cloud image unless you provide a custom disk; it controls a Linux Xvfb desktop inside a real VM. See
+            <a href="#install">Optional Docker setup and Optional QEMU setup</a> before using those adapters.
           </p>
           <table>
             <tbody>
@@ -844,6 +902,13 @@ try {
                 <td>
                   Controls an isolated Linux desktop in Docker, using Xvfb, a window manager, and `xdotool`. Requires
                   Docker to be running.
+                </td>
+              </tr>
+              <tr>
+                <th>`virtualComputer()`</th>
+                <td>
+                  Controls an isolated Linux desktop in a QEMU VM, using SSH, Xvfb, a window manager, and `xdotool`.
+                  Requires QEMU and uses a default Debian cloud image unless a custom disk is provided.
                 </td>
               </tr>
             </tbody>
@@ -990,8 +1055,8 @@ try {
           </p>
           <p>
             Pass `container.network: false` or `container.network: "none"` when you want to disable Docker networking.
-            Use `desktop.packages` to replace the base package list, or `desktop.additionalAptPackages` to append packages
-            to the default list. Use `desktop.startupCommand: "xterm"` to start with a terminal, or pass
+            Use `desktop.packages` to replace the base package list, or `desktop.additionalAptPackages` to append
+            packages to the default list. Use `desktop.startupCommand: "xterm"` to start with a terminal, or pass
             `desktop.additionalAptPackages: ["chromium"]` with `desktop.startupCommand: "chromium --no-sandbox"` if you
             want Chromium open at startup.
           </p>
@@ -1005,9 +1070,48 @@ try {
             at a time.
           </p>
           <p>
-            Docker desktop and Docker CLI sessions both accept `shared` and `sharedFiles`. Pass `shared` to mount a
-            host directory, or pass `sharedFiles` to copy specific host files into a temporary shared directory before
-            the run starts.
+            Docker desktop, Docker CLI, QEMU virtual desktop, and QEMU virtual CLI sessions all accept `shared` and
+            `sharedFiles`. Pass `shared` to expose a host directory, or pass `sharedFiles` to copy specific host files
+            into a temporary shared directory before the run starts.
+          </p>
+          <pre><code>const desktop = await automify.virtualComputer({
+  vm: { memory: "2g", cpus: 2 },
+  desktop: { startupCommand: "xterm" }
+});
+
+try {
+  const run = await desktop.do("Use the open terminal to run 'uname -a', then return the kernel name and machine architecture shown on screen.", {
+    screenshots: {
+      initial: "/tmp/automify-qemu-desktop-initial.png",
+      final: "/tmp/automify-qemu-desktop-final.png"
+    },
+    output: jsonOutput("system_info", {
+      kernelName: "string",
+      machine: "string",
+      summary: "string"
+    })
+  });
+
+  console.log(run.parsed);
+} finally {
+  await desktop.close();
+}</code></pre>
+          <p>
+            `createVirtualDesktopComputer()` creates a QEMU-backed Linux desktop. It starts QEMU with user-mode
+            networking and SSH port forwarding, waits for SSH readiness, then starts Xvfb, a lightweight window manager,
+            `xdotool` input, and PNG screenshots inside the guest. Without an image override, Automify prepares a
+            default Debian cloud image with SSH access. Pass `vm.image` or `image` only for a custom disk, `ssh.user`
+            and `ssh.keyPath` for custom login, and `desktop.startupCommand` or `startupCommand` for the initial app.
+          </p>
+          <p>
+            QEMU virtual desktop locks are scoped to the VM name. Default virtual desktop adapters use a random VM name,
+            so separate calls can run in parallel. If you pass `vmName` or `vm.name`, Automify takes a cross-process
+            lock for that exact name until `desktop.close()` or `computer.close()` releases it.
+          </p>
+          <p>
+            QEMU virtual desktop and virtual CLI sessions both accept `shared` and `sharedFiles`. The default shared
+            folder path is exposed through QEMU `virtfs` / 9p with the mount tag `automify_shared`; the guest must have
+            9p support for live host folder mounting.
           </p>
           <p>
             Pass `screenshots.initial` and/or `screenshots.final` on a `do()` call to save screenshots at the beginning
@@ -1050,8 +1154,8 @@ try {
           <p>
             Use `fileToData()` or `filesToData()` when you want file metadata, text, base64, or data URLs inside
             `data`. Use `evaluate` on `.do()` when the model should evaluate files directly; images are sent as
-            image input and text-like files are sent as text input. Use `shared` or `sharedFiles` when the Docker CLI
-            or Docker desktop also needs filesystem access to those files.
+            image input and text-like files are sent as text input. Use `shared` or `sharedFiles` when Docker CLI,
+            Docker desktop, QEMU virtual CLI, or QEMU virtual desktop also needs filesystem access to those files.
           </p>
           <table>
             <tbody>
@@ -1065,7 +1169,10 @@ try {
               </tr>
               <tr>
                 <th>`shared` / `sharedFiles`</th>
-                <td>Host folders or files that a Docker CLI or Docker desktop must access through the container filesystem.</td>
+                <td>
+                  Host folders or files that Docker or QEMU virtual adapters must access through the container or guest
+                  filesystem.
+                </td>
               </tr>
             </tbody>
           </table>
@@ -1124,13 +1231,26 @@ try {
 }
 </code></pre>
           <p>
-            `shared` mounts a host folder into the container, so files the command creates or edits under `/workspace`
-            are visible on the host after the run. `sharedFiles` is still useful when you only need to copy specific
-            inputs into a temporary shared directory before the first request.
+            In Docker adapters, `shared` mounts a host folder into the container, so files the command creates or edits
+            under `/workspace` are visible on the host after the run. In QEMU adapters, `shared` is exposed through
+            QEMU `virtfs` / 9p by default, so the guest image must support 9p mounts. `sharedFiles` is still useful when
+            you only need to copy specific inputs into a temporary shared directory before the first request.
           </p>
           <pre><code>import { createDockerDesktopComputer } from "automify";
 
 const computer = await createDockerDesktopComputer({
+  desktop: { startupCommand: "xterm" },
+  shared: {
+    hostPath: "/tmp/automify-work",
+    containerPath: "/workspace"
+  }
+});
+
+console.log(computer.sharedFolder.containerPath);</code></pre>
+          <pre><code>import { createVirtualDesktopComputer } from "automify";
+
+const computer = await createVirtualDesktopComputer({
+  vm: { memory: "2g", cpus: 2 },
   desktop: { startupCommand: "xterm" },
   shared: {
     hostPath: "/tmp/automify-work",
@@ -1203,6 +1323,20 @@ try {
   await dockerCli.close();
 }
 
+// Virtual CLI
+const virtualCli = automify.virtualCli({
+  vm: { memory: "2g", cpus: 2 },
+  additionalAptPackages: ["coreutils"],
+  shared: { hostPath: sharedDir, containerPath: "/workspace" }
+});
+try {
+  await virtualCli.do("Read data/report.csv, calculate revenue by region, and report the top region.", {
+    data: { report: "data/report.csv" }
+  });
+} finally {
+  await virtualCli.close();
+}
+
 
 // Local desktop
 // Reminder: local desktop support requires `npx automify-install-desktop` once for this project.
@@ -1227,6 +1361,21 @@ try {
   });
 } finally {
   await dockerDesktop.close();
+}
+
+// Virtual desktop
+const virtualDesktop = await automify.virtualComputer({
+  vm: { memory: "2g", cpus: 2 },
+  desktop: {
+    startupCommand: "xterm"
+  }
+});
+try {
+  await virtualDesktop.do("Use the open terminal to run 'uname -a' and summarize the VM system information shown on screen.", {
+    screenshots: { final: "/tmp/qemu-final.png" }
+  });
+} finally {
+  await virtualDesktop.close();
 }</code></pre>
         </section>
 
@@ -1373,8 +1522,15 @@ await browser.do("Summarize the page without leaving the allowed domain.", {
 npm run test:e2e
 OPENAI_API_KEY=... npm run test:live</code></pre>
           <p>
+            `npm run test:live:qemu` runs only the real QEMU Debian boot smoke test, without OpenAI.
+            `npm run test:live:qemu:desktop` runs the real QEMU desktop smoke test with the default Debian image. Set
+            `AUTOMIFY_QEMU_IMAGE=/path/to/linux.qcow2` only when you want the desktop smoke test or the QEMU live tests
+            to use a custom image. The equivalent direct flags are `RUN_QEMU_DEBIAN_E2E=1 npm run test:e2e` and
+            `RUN_QEMU_DESKTOP_E2E=1 npm run test:e2e`.
+          </p>
+          <p>
             `npm run test:live` runs `test/e2e/live-openai.e2e.test.js` with `RUN_OPENAI_E2E=1`. By default, it runs
-            the live OpenAI CLI and Docker CLI checks and skips the browser and Docker desktop checks.
+            the live OpenAI CLI and Docker CLI checks and skips the browser, Docker desktop, and QEMU checks.
           </p>
           <table>
             <thead>
@@ -1411,14 +1567,59 @@ OPENAI_API_KEY=... npm run test:live</code></pre>
                 <td>Also runs the live browser demo test. Requires the Playwright Chromium install from `npm install`.</td>
               </tr>
               <tr>
-                <th>`RUN_OPENAI_VIRTUAL_DESKTOP_E2E=1`</th>
+                <th>`RUN_OPENAI_DOCKER_DESKTOP_E2E=1`</th>
                 <td>No</td>
                 <td>Also runs the live Docker desktop tests. Requires Docker to be running.</td>
               </tr>
               <tr>
-                <th>`AUTOMIFY_VIRTUAL_DESKTOP_IMAGE`</th>
+                <th>`RUN_QEMU_DEBIAN_E2E=1`</th>
+                <td>No</td>
+                <td>Runs the non-OpenAI QEMU boot smoke test with the cached default Debian image.</td>
+              </tr>
+              <tr>
+                <th>`RUN_OPENAI_QEMU_CLI_E2E=1`</th>
+                <td>No</td>
+                <td>Also runs the live QEMU virtual CLI test. Requires QEMU; uses the default Debian image unless overridden.</td>
+              </tr>
+              <tr>
+                <th>`RUN_OPENAI_QEMU_DESKTOP_E2E=1`</th>
+                <td>No</td>
+                <td>Also runs the live QEMU virtual desktop test. Requires QEMU; uses the default Debian image unless overridden.</td>
+              </tr>
+              <tr>
+                <th>`AUTOMIFY_DOCKER_DESKTOP_IMAGE`</th>
                 <td>No</td>
                 <td>Optional Docker desktop base image override.</td>
+              </tr>
+              <tr>
+                <th>`AUTOMIFY_QEMU_IMAGE`</th>
+                <td>No</td>
+                <td>Optional custom bootable Linux disk image with SSH access for QEMU virtual CLI and desktop tests.</td>
+              </tr>
+              <tr>
+                <th>`AUTOMIFY_QEMU_DEFAULT_IMAGE_URL`</th>
+                <td>No</td>
+                <td>Optional mirror or pinned URL for the default Debian cloud image download.</td>
+              </tr>
+              <tr>
+                <th>`AUTOMIFY_QEMU_IMAGE_CACHE_DIR`</th>
+                <td>No</td>
+                <td>Optional cache directory for the default Debian cloud image.</td>
+              </tr>
+              <tr>
+                <th>`AUTOMIFY_QEMU_PREPARED_IMAGE_CACHE_DIR`</th>
+                <td>No</td>
+                <td>Optional cache directory for prepared Automify-ready QEMU Debian images.</td>
+              </tr>
+              <tr>
+                <th>`AUTOMIFY_QEMU_FIRMWARE`</th>
+                <td>No</td>
+                <td>Optional QEMU UEFI firmware path. Useful on ARM hosts when the firmware is not auto-detected.</td>
+              </tr>
+              <tr>
+                <th>`AUTOMIFY_QEMU_SSH_USER` / `AUTOMIFY_QEMU_SSH_KEY`</th>
+                <td>No</td>
+                <td>Optional SSH login override for the QEMU image.</td>
               </tr>
               <tr>
                 <th>`AUTOMIFY_LIVE_LOGS=1`</th>
@@ -1430,14 +1631,31 @@ OPENAI_API_KEY=... npm run test:live</code></pre>
           <p>Run every live test through the npm script:</p>
           <pre><code>OPENAI_API_KEY=... \
 RUN_OPENAI_BROWSER_E2E=1 \
-RUN_OPENAI_VIRTUAL_DESKTOP_E2E=1 \
+RUN_OPENAI_DOCKER_DESKTOP_E2E=1 \
+RUN_OPENAI_QEMU_CLI_E2E=1 \
+RUN_OPENAI_QEMU_DESKTOP_E2E=1 \
 npm run test:live</code></pre>
           <p>The equivalent direct command is:</p>
           <pre><code>OPENAI_API_KEY=... \
 RUN_OPENAI_E2E=1 \
 RUN_OPENAI_BROWSER_E2E=1 \
-RUN_OPENAI_VIRTUAL_DESKTOP_E2E=1 \
+RUN_OPENAI_DOCKER_DESKTOP_E2E=1 \
+RUN_OPENAI_QEMU_CLI_E2E=1 \
+RUN_OPENAI_QEMU_DESKTOP_E2E=1 \
 node --test test/e2e/live-openai.e2e.test.js</code></pre>
+          <p>
+            Set `AUTOMIFY_QEMU_IMAGE=/path/to/linux.qcow2` only when you want QEMU live tests to use a custom image
+            instead of the default Debian image.
+          </p>
+          <p>
+            The default Debian base image and prepared Automify-ready images are cached on the user's computer and reused
+            across VM runs. The CLI cache stays minimal; the desktop cache is a separate variant that bakes
+            Xvfb/openbox/xterm/xdotool/scrot so warm desktop boots do not reinstall apt packages. Configure image caching with
+            `defaultImageCache`, for example `defaultImageCache: { dir: "/var/cache/automify-qemu", forcePrepare: true
+            }`. Run `npx automify-qemu-image` to pre-warm the QEMU CLI cache. Run `npx automify-qemu-image --desktop`
+            to pre-warm the QEMU desktop cache. Run `npx automify-qemu-image --force-download` to replace the cached
+            base image and rebuild the prepared image.
+          </p>
         </section>
 
         <section id="api">
@@ -1466,8 +1684,22 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
                 <td>Create a Docker-backed command-line automation runner with optional shared files. Requires Docker to be running.</td>
               </tr>
               <tr>
+                <th>`automify.virtualCli(options)`</th>
+                <td>
+                  Create a QEMU-backed command-line automation runner with optional shared files. Requires QEMU and
+                  uses a default Debian cloud image unless a custom image is provided.
+                </td>
+              </tr>
+              <tr>
                 <th>`automify.dockerComputer(options)`</th>
                 <td>Create a Docker-backed Linux desktop runner with a required `startupCommand`, then close its container with `close()`. The host can be macOS, Windows, or Linux as long as Docker is running and can run Linux containers.</td>
+              </tr>
+              <tr>
+                <th>`automify.virtualComputer(options)`</th>
+                <td>
+                  Create a QEMU-backed Linux desktop runner with a required `startupCommand`, then close its VM with
+                  `close()`. Requires QEMU and uses a default Debian cloud image unless a custom image is provided.
+                </td>
               </tr>
               <tr>
                 <th>`automify.localComputer(options)`</th>
@@ -1495,6 +1727,13 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
                 </td>
               </tr>
               <tr>
+                <th>`createVirtualDesktopComputer(options)`</th>
+                <td>
+                  Create a QEMU-backed Linux desktop VM with SSH, Xvfb, a window manager, `xdotool` input, and PNG
+                  screenshots. Requires QEMU and uses a default Debian cloud image unless a custom image is provided.
+                </td>
+              </tr>
+              <tr>
                 <th>`createBrowserAutomify(options)`</th>
                 <td>Construct a browser runner directly.</td>
               </tr>
@@ -1507,8 +1746,16 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
                 <td>Construct a Docker CLI runner directly. Requires Docker to be running.</td>
               </tr>
               <tr>
+                <th>`createVirtualCliAutomify(options)`</th>
+                <td>Construct a QEMU virtual CLI runner directly. Requires QEMU and uses a default Debian cloud image unless a custom image is provided.</td>
+              </tr>
+              <tr>
                 <th>`createDockerComputerAutomify(options)`</th>
                 <td>Construct a Docker desktop runner directly. Requires Docker to be running.</td>
+              </tr>
+              <tr>
+                <th>`createVirtualComputerAutomify(options)`</th>
+                <td>Construct a QEMU virtual desktop runner directly. Requires QEMU and uses a default Debian cloud image unless a custom image is provided.</td>
               </tr>
               <tr>
                 <th>`fileToData(file, options)` / `filesToData(files, options)`</th>

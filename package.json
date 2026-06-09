@@ -14,7 +14,8 @@
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "bin": {
-    "automify-install-desktop": "./scripts/install-desktop.js"
+    "automify-install-desktop": "./scripts/install-desktop.js",
+    "automify-qemu-image": "./scripts/qemu-image.js"
   },
   "exports": {
     ".": {
@@ -42,6 +43,8 @@
     "test": "node --test test/*.test.js",
     "test:e2e": "node --test test/e2e/*.e2e.test.js",
     "test:live": "RUN_OPENAI_E2E=1 node --test test/e2e/live-openai.e2e.test.js",
+    "test:live:qemu": "RUN_QEMU_DEBIAN_E2E=1 node --test test/e2e/qemu-runtimes.e2e.test.js",
+    "test:live:qemu:desktop": "RUN_QEMU_DESKTOP_E2E=1 node --test --test-name-pattern \"QEMU virtual desktop\" test/e2e/desktop-runtimes.e2e.test.js",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

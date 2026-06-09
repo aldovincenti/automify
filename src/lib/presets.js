@@ -86,7 +86,38 @@ export function applyDockerCliPreset(options = {}) {
   }
 }
 
-export const applyVirtualCliPreset = applyDockerCliPreset;
+export function applyVirtualCliPreset(options = {}) {
+  switch (options.preset) {
+    case undefined:
+    case null:
+      return options;
+    case "repo":
+      return mergePreset(
+        {
+          command: REPO_COMMAND,
+          shared: {
+            hostPath: process.cwd(),
+            containerPath: "/workspace"
+          }
+        },
+        options
+      );
+    case "locked-down-cli":
+      return mergePreset(
+        {
+          command: {
+            approval: "always",
+            allow: [],
+            block: [/^rm\b/, /^sudo\b/, /^curl\b/, /^wget\b/]
+          },
+          limits: { steps: 20 }
+        },
+        options
+      );
+    default:
+      throw unknownPreset("virtual CLI", options.preset, ["repo", "locked-down-cli"]);
+  }
+}
 
 export function applyDockerDesktopPreset(options = {}) {
   switch (options.preset) {
@@ -107,7 +138,24 @@ export function applyDockerDesktopPreset(options = {}) {
   }
 }
 
-export const applyVirtualDesktopPreset = applyDockerDesktopPreset;
+export function applyVirtualDesktopPreset(options = {}) {
+  switch (options.preset) {
+    case undefined:
+    case null:
+      return options;
+    case "desktop-review":
+      return mergePreset(
+        {
+          viewport: { width: 1440, height: 900 },
+          waitMs: 750,
+          screenshotSettleMs: 500
+        },
+        options
+      );
+    default:
+      throw unknownPreset("virtual desktop", options.preset, ["desktop-review"]);
+  }
+}
 
 function mergePreset(defaults, options) {
   return {

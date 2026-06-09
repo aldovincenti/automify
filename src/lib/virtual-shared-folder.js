@@ -12,7 +12,9 @@ export async function prepareVirtualSharedFolder(options = {}, defaults = {}) {
   if (!requested) return null;
 
   const config = normalizeSharedFolder(requested);
-  const containerPath = normalizeContainerPath(config.containerPath ?? defaults.containerPath ?? DEFAULT_CONTAINER_PATH);
+  const containerPath = normalizeContainerPath(
+    config.containerPath ?? defaults.containerPath ?? DEFAULT_CONTAINER_PATH
+  );
   const hostPath = config.hostPath
     ? resolve(config.hostPath)
     : await mkdtemp(join(tmpdir(), defaults.prefix ?? "automify-shared-"));

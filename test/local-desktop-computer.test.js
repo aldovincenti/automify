@@ -521,10 +521,7 @@ test("install-desktop skips when the persistent desktop runtime cache is compati
     join(runtimeDir, DESKTOP_RUNTIME_MANIFEST),
     `${JSON.stringify(desktopRuntimeManifest(env), null, 2)}\n`
   );
-  await writeFile(
-    join(packageDir, "package.json"),
-    `${JSON.stringify({ name: "@nut-tree/nut-js" }, null, 2)}\n`
-  );
+  await writeFile(join(packageDir, "package.json"), `${JSON.stringify({ name: "@nut-tree/nut-js" }, null, 2)}\n`);
 
   const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "install-desktop.js")], {
     cwd: process.cwd(),
@@ -557,10 +554,7 @@ test("postinstall desktop helper skips rebuild when npm update keeps the runtime
     join(runtimeDir, DESKTOP_RUNTIME_MANIFEST),
     `${JSON.stringify(desktopRuntimeManifest(env), null, 2)}\n`
   );
-  await writeFile(
-    join(packageDir, "package.json"),
-    `${JSON.stringify({ name: "@nut-tree/nut-js" }, null, 2)}\n`
-  );
+  await writeFile(join(packageDir, "package.json"), `${JSON.stringify({ name: "@nut-tree/nut-js" }, null, 2)}\n`);
 
   const result = spawnSync(process.execPath, [join(process.cwd(), "scripts", "install-desktop-if-needed.js")], {
     cwd: process.cwd(),

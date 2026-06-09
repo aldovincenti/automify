@@ -22,17 +22,14 @@ await automify.withBrowser(
     }
   },
   async (browser) => {
-    return browser.do(
-      "Find the contact page and report the support address",
-      {
-        safety: {
-          onCheck: async ({ checks, action }) => {
-            console.log("Safety checks:", checks);
-            console.log("Action:", action);
-            return true;
-          }
+    return browser.do("Find the contact page and report the support address", {
+      safety: {
+        onCheck: async ({ checks, action }) => {
+          console.log("Safety checks:", checks);
+          console.log("Action:", action);
+          return true;
         }
       }
-    );
+    });
   }
 );

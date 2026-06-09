@@ -188,7 +188,7 @@ export class CliAutomify {
               role: "user",
               content: [
                 { type: "input_text", text: formatCliInstruction(instruction, data, options.cwd ?? this.cwd) },
-                ...await evaluationContentFor(options.filesToEvaluate)
+                ...(await evaluationContentFor(options.filesToEvaluate))
               ]
             }
           ],
@@ -360,7 +360,9 @@ function cliInstructions(options) {
         "After a command changes files, runs tests, or produces the requested result, decide from its output whether another command is necessary. Stop when the task is complete and return a concise summary instead of calling more tools."
       ].join("\n"),
     commandPolicyGuidance(options)
-  ].filter(Boolean).join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function assertModel(model) {

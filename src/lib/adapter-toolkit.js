@@ -34,10 +34,14 @@ export function computerCall(action, options = {}) {
 export function runCommandCall(command, options = {}) {
   const callId = options.callId ?? options.call_id ?? `call_${Date.now()}`;
 
-  return functionCall("run_command", { command, cwd: options.cwd, timeoutMs: options.timeoutMs }, {
-    ...withoutKeys(options, ["callId", "call_id", "cwd", "timeoutMs"]),
-    callId
-  });
+  return functionCall(
+    "run_command",
+    { command, cwd: options.cwd, timeoutMs: options.timeoutMs },
+    {
+      ...withoutKeys(options, ["callId", "call_id", "cwd", "timeoutMs"]),
+      callId
+    }
+  );
 }
 
 export function functionCall(name, args = {}, options = {}) {

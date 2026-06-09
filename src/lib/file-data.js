@@ -76,7 +76,9 @@ export async function fileToEvaluate(file, options = {}) {
         truncated ? `Content truncated to ${maxBytes} bytes from ${buffer.byteLength} bytes.` : null,
         "",
         text
-      ].filter((part) => part != null).join("\n")
+      ]
+        .filter((part) => part != null)
+        .join("\n")
     };
   }
 
@@ -126,11 +128,9 @@ function mediaTypeForPath(path) {
 }
 
 function isTextMediaType(mediaType) {
-  return mediaType.startsWith("text/") || [
-    "application/json",
-    "application/xml",
-    "application/yaml"
-  ].includes(mediaType);
+  return (
+    mediaType.startsWith("text/") || ["application/json", "application/xml", "application/yaml"].includes(mediaType)
+  );
 }
 
 function positiveInteger(value) {

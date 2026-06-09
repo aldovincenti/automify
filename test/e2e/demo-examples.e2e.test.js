@@ -5,7 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { test } from "node:test";
 
-import { createVirtualDesktopComputer, filesToData, initAutomify, jsonOutput } from "../../src/index.js";
+import { createDockerDesktopComputer, filesToData, initAutomify, jsonOutput } from "../../src/index.js";
 
 const rootDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -13,7 +13,7 @@ test("e2e demo: virtual desktop example runs through initAutomify.computer", asy
   const dir = await mkdtemp(join(tmpdir(), "automify-demo-virtual-desktop-"));
   const finalScreenshot = join(dir, "final.png");
   const dockerCalls = [];
-  const computer = await createVirtualDesktopComputer({
+  const computer = await createDockerDesktopComputer({
     containerName: "automify-demo-virtual-desktop",
     startupCommand: "chromium --no-sandbox",
     execFile: fakeDockerDesktopExec(dockerCalls)
@@ -32,8 +32,7 @@ test("e2e demo: virtual desktop example runs through initAutomify.computer", asy
     const desktop = automify.computer({ computer });
     const result = await desktop.do("Go to url and describe the content of the homepage.", {
       data: { url: "https://www.aldovincenti.com" },
-      finalScreenshot,
-      maxSteps: 4
+      finalScreenshot
     });
     const finalScreenshotBytes = await readFile(finalScreenshot);
 

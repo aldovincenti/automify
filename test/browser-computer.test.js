@@ -116,7 +116,6 @@ test("createBrowserComputer accepts ergonomic browser option aliases", async () 
   ]);
 });
 
-
 test("createBrowserComputer launches headless by default", async () => {
   const events = [];
   const page = makePage(events);
@@ -196,7 +195,11 @@ test("createPlaywrightComputer executes common browser actions", async () => {
 
 test("executePlaywrightAction delegates unknown actions when a callback exists", async () => {
   const seen = [];
-  await executePlaywrightAction(makePage([]), { type: "custom_action" }, { onUnknownAction: (action) => seen.push(action) });
+  await executePlaywrightAction(
+    makePage([]),
+    { type: "custom_action" },
+    { onUnknownAction: (action) => seen.push(action) }
+  );
 
   assert.deepEqual(seen, [{ type: "custom_action" }]);
 });
@@ -212,11 +215,15 @@ test("executePlaywrightAction sends keypress arrays as combinations", async () =
 test("executePlaywrightAction emits debug events", async () => {
   const logs = [];
 
-  await executePlaywrightAction(makePage([]), { type: "click", x: 11, y: 22, button: "right" }, {
-    debug(message, details) {
-      logs.push([message, details]);
+  await executePlaywrightAction(
+    makePage([]),
+    { type: "click", x: 11, y: 22, button: "right" },
+    {
+      debug(message, details) {
+        logs.push([message, details]);
+      }
     }
-  });
+  );
 
   assert.equal(logs[0][0], "[automify:browser-computer] action");
   assert.deepEqual(logs[0][1].action, { type: "click", x: 11, y: 22, button: "right" });
@@ -245,12 +252,16 @@ test("executePlaywrightAction defaults debug to false", async () => {
 test("executePlaywrightAction can silence logs", async () => {
   const logs = [];
 
-  await executePlaywrightAction(makePage([]), { type: "click", x: 11, y: 22 }, {
-    silent: true,
-    debug(message, details) {
-      logs.push([message, details]);
+  await executePlaywrightAction(
+    makePage([]),
+    { type: "click", x: 11, y: 22 },
+    {
+      silent: true,
+      debug(message, details) {
+        logs.push([message, details]);
+      }
     }
-  });
+  );
 
   assert.deepEqual(logs, []);
 });

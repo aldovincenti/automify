@@ -2,10 +2,12 @@ import { createAutomify } from "./automify.js";
 import { createBrowserAutomify, withBrowserAutomify } from "./browser-automify.js";
 import { createCliAutomify } from "./cli-automify.js";
 import { createDockerCliAutomify } from "./docker-cli-automify.js";
+import { createVirtualCliAutomify } from "./qemu-cli-automify.js";
 import {
   createComputerAutomify,
   createDockerComputerAutomify,
-  createLocalComputerAutomify
+  createLocalComputerAutomify,
+  createVirtualComputerAutomify
 } from "./computer-automify.js";
 import { createAnthropicModelAdapter } from "./anthropic-model-adapter.js";
 import { AutomifyError } from "./errors.js";
@@ -114,8 +116,16 @@ export function initAutomify(options = {}) {
       });
     },
 
+    virtualComputer(computerOptions = {}) {
+      return createVirtualComputerAutomify({
+        ...computerDefaults,
+        ...computerOptions,
+        client
+      });
+    },
+
     virtualCli(cliOptions = {}) {
-      return createDockerCliAutomify({
+      return createVirtualCliAutomify({
         ...defaults,
         ...cliOptions,
         client

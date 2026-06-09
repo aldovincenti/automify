@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Automify - AI automation for browser, CLI, and desktop workflows</title>
+    <title>Automify - AI Automation (computer use) for browser, CLI, and desktop in Node.js</title>
     <meta
       name="description"
       content="Automify is a Node.js library for browser, CLI, and desktop automation with built-in provider support and structured automation workflows."
@@ -26,7 +26,10 @@
             <p class="eyebrow">Computer use for Node.js</p>
             <h1>Automify</h1>
             <p class="lede">One API for AI computer use.</p>
-            <p class="sublede">Browser, CLI, Docker CLI, local desktop, and Docker desktop, with shared data and files.</p>
+            <p class="sublede">
+              Browser, CLI, Docker CLI, QEMU virtual CLI, local desktop, Docker desktop, and QEMU virtual desktop, with
+              shared data and files.
+            </p>
             <div class="hero-links">
               <a class="button-link button-link-acid" href="./documentation.html">Read documentation</a>
               <a class="button-link" href="./demo.html">Try the demo</a>
@@ -182,6 +185,38 @@ sudo docker run hello-world
 sudo usermod -aG docker $USER</code></pre>
             </div>
           </div>
+
+          <div class="install-step">
+            <div class="install-step-label">
+              <span>Step 5</span>
+              <strong>Install QEMU</strong>
+              <em class="install-step-badge">Optional</em>
+            </div>
+            <div class="install-shell install-shell-multiline">
+              <div class="install-shell-bar">
+                <span>QEMU VM adapter</span>
+                <button
+                  class="copy-button"
+                  type="button"
+                  data-copy="# Only for optional QEMU virtual CLI and virtual desktop support\n# Linux: sudo apt-get install -y qemu-system qemu-utils\n# macOS: brew install qemu\n# Windows: install QEMU from https://www.qemu.org/download/\n\n# Pre-warm the minimal QEMU CLI cache.\nnpx automify-qemu-image\n\n# Pre-warm the QEMU desktop cache with Xvfb/openbox/xterm/xdotool/scrot.\nnpx automify-qemu-image --desktop"
+                >
+                  Copy
+                </button>
+              </div>
+              <pre><code># Only for optional QEMU virtual CLI and virtual desktop support
+# Linux: sudo apt-get install -y qemu-system qemu-utils
+# macOS: brew install qemu
+# Windows: install QEMU from https://www.qemu.org/download/
+
+# Pre-warm the minimal QEMU CLI cache.
+npx automify-qemu-image
+
+# Pre-warm the QEMU desktop cache with Xvfb/openbox/xterm/xdotool/scrot.
+npx automify-qemu-image --desktop
+
+# Pass image or vm.image only to use a custom VM disk.</code></pre>
+            </div>
+          </div>
         </div>
 
         <div class="install-os-panel">
@@ -203,8 +238,8 @@ sudo usermod -aG docker $USER</code></pre>
             desktop installer does not verify every native library. Linux local desktop requires X11/Xorg or Xvfb;
             Wayland is not supported. On Ubuntu, switch to an Xorg session before using local desktop if the current
             session is Wayland. Ubuntu 26.04 may also need the Playwright platform override shown in Step 1 until native
-            support lands. Step 4 is only for Docker CLI and Docker desktop support; after sudo usermod -aG docker
-            $USER, log out and back in to use Docker without sudo.
+            support lands. Step 4 is only for Docker CLI and Docker desktop support. Step 5 is only for QEMU virtual CLI
+            and virtual desktop support.
           </p>
         </div>
       </div>
@@ -213,8 +248,10 @@ sudo usermod -aG docker $USER</code></pre>
         <div><strong>Browser</strong><span>Control a live browser.</span></div>
         <div><strong>CLI</strong><span>Run approved commands.</span></div>
         <div><strong>Docker CLI</strong><span>Run commands in a running Docker daemon.</span></div>
+        <div><strong>Virtual CLI</strong><span>Run commands in a QEMU VM.</span></div>
         <div><strong>Desktop</strong><span>Control native apps. Linux needs X11/Xorg or Xvfb, not Wayland.</span></div>
         <div><strong>Docker desktop</strong><span>Launch Linux sandboxes with running Docker.</span></div>
+        <div><strong>Virtual desktop</strong><span>Launch a Linux desktop in QEMU.</span></div>
       </div>
     </header>
 
@@ -277,6 +314,9 @@ try {
               <button class="surface-tab" type="button" role="tab" aria-selected="false" data-surface-tab="dockerCli">
                 Docker CLI
               </button>
+              <button class="surface-tab" type="button" role="tab" aria-selected="false" data-surface-tab="virtualCli">
+                Virtual CLI
+              </button>
               <button class="surface-tab" type="button" role="tab" aria-selected="false" data-surface-tab="desktop">
                 Desktop
               </button>
@@ -288,6 +328,15 @@ try {
                 data-surface-tab="dockerDesktop"
               >
                 Docker desktop
+              </button>
+              <button
+                class="surface-tab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                data-surface-tab="virtualDesktop"
+              >
+                Virtual desktop
               </button>
             </div>
 
@@ -357,6 +406,10 @@ try {
             <strong>Open the Docker desktop guide</strong>
             <span>Docker-backed Linux computer use with final and per-action screenshots.</span>
           </a>
+          <a class="doc-link" href="./documentation.html#desktop">
+            <strong>Open the QEMU virtual desktop guide</strong>
+            <span>VM-backed Linux computer use with SSH, Xvfb, and screenshots.</span>
+          </a>
         </div>
       </section>
     </main>
@@ -364,7 +417,7 @@ try {
     <footer>
       <div class="footer-inner">
         <strong>Automify</strong>
-        <span>MIT licensed Node.js computer-use library for browser, CLI, Docker CLI, and desktop workflows.</span>
+        <span>MIT licensed Node.js computer-use library for browser, CLI, Docker, QEMU VM, and desktop workflows.</span>
         <span>Created by <a href="https://aldovincenti.com">Aldo Vincenti</a>.</span>
       </div>
     </footer>

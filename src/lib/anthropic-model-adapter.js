@@ -75,12 +75,18 @@ export class AnthropicModelAdapter {
         ? await this.responseTransform(data, { payload, context, request: finalRequest })
         : data;
     const automifyResponse = this.#fromAnthropicResponse(finalData, context, payload);
-    const previous = payload.previous_response_id ? this.transcripts.get(payload.previous_response_id) ?? [] : [];
-    this.transcripts.set(automifyResponse.id, compactMessagesForStorage([
-      ...previous,
-      ...this.#userMessagesFromPayload(payload, context),
-      { role: "assistant", content: finalData.content ?? [] }
-    ], context));
+    const previous = payload.previous_response_id ? (this.transcripts.get(payload.previous_response_id) ?? []) : [];
+    this.transcripts.set(
+      automifyResponse.id,
+      compactMessagesForStorage(
+        [
+          ...previous,
+          ...this.#userMessagesFromPayload(payload, context),
+          { role: "assistant", content: finalData.content ?? [] }
+        ],
+        context
+      )
+    );
 
     return automifyResponse;
   }
@@ -100,8 +106,11 @@ export class AnthropicModelAdapter {
   }
 
   async #toAnthropicRequest(payload, context) {
-    const previous = payload.previous_response_id ? this.transcripts.get(payload.previous_response_id) ?? [] : [];
-    const messages = compactMessagesForRequest([...previous, ...this.#userMessagesFromPayload(payload, context)], context);
+    const previous = payload.previous_response_id ? (this.transcripts.get(payload.previous_response_id) ?? []) : [];
+    const messages = compactMessagesForRequest(
+      [...previous, ...this.#userMessagesFromPayload(payload, context)],
+      context
+    );
     const tools = this.#toolsFromPayload(payload);
 
     return removeUndefined({
@@ -204,11 +213,13 @@ export class AnthropicModelAdapter {
 
       if (item.type === "tool_use") {
         if (item.name === "run_command") {
-          output.push(runCommandCall(item.input?.command ?? "", {
-            callId: item.id,
-            cwd: item.input?.cwd,
-            timeoutMs: item.input?.timeoutMs
-          }));
+          output.push(
+            runCommandCall(item.input?.command ?? "", {
+              callId: item.id,
+              cwd: item.input?.cwd,
+              timeoutMs: item.input?.timeoutMs
+            })
+          );
         } else if (item.name === "computer") {
           output.push(computerCall(mapAnthropicComputerAction(item.input), { callId: item.id }));
         } else {

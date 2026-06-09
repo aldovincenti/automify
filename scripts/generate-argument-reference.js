@@ -2,7 +2,9 @@ import { writeFile } from "node:fs/promises";
 import { argumentReference } from "../src/lib/argument-reference.js";
 
 const rows = argumentReference
-  .map((entry) => `| \`${entry.surface}\` | ${entry.preferred.map((name) => `\`${name}\``).join(", ")} | ${entry.notes} |`)
+  .map(
+    (entry) => `| \`${entry.surface}\` | ${entry.preferred.map((name) => `\`${name}\``).join(", ")} | ${entry.notes} |`
+  )
   .join("\n");
 
 const markdown = `# Automify Argument Reference

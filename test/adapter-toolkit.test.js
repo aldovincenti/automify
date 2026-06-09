@@ -67,10 +67,10 @@ test("adapter toolkit reads text and json from model responses", () => {
   });
 
   assert.equal(getOutputText(modelResponse), '{"email":"support@example.com","found":true}\n\nextra');
-  assert.deepEqual(
-    parseOutputJson(response({ output: [message('{"email":"support@example.com","found":true}')] })),
-    { email: "support@example.com", found: true }
-  );
+  assert.deepEqual(parseOutputJson(response({ output: [message('{"email":"support@example.com","found":true}')] })), {
+    email: "support@example.com",
+    found: true
+  });
 });
 
 test("adapter toolkit parses data URLs", () => {
