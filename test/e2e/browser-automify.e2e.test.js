@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -120,6 +120,158 @@ test("e2e: browser automify adds a person on the docs demo page", async () => {
   }
 });
 
+test("e2e: browser task builder adds a person on the docs demo page", async () => {
+  let automify;
+  const calls = [];
+
+  try {
+    automify = await createBrowserAutomify({
+      openaiApiKey: "test-token",
+      model: "test-browser-model",
+      headless: true,
+      url: pathToFileURL(join(rootDirectory, "docs/demo.html")).href
+    });
+
+    const client = scriptedClient(
+      calls,
+      [
+        () => clickCenter(automify.page, "#first-name"),
+        { type: "type", text: "Grace" },
+        () => clickCenter(automify.page, "#last-name"),
+        { type: "type", text: "Hopper" },
+        () => clickCenter(automify.page, "#person-form button")
+      ],
+      async () => {
+        return automify.page.locator("#latest-record-json").textContent();
+      }
+    );
+    automify.client = client;
+
+    const result = await automify
+      .addStep("Add the person from data.")
+      .addWait(50)
+      .addExtract("Read the latest saved record JSON.")
+      .addData({ firstName: "Grace", lastName: "Hopper" })
+      .run();
+    const record = JSON.parse(await automify.page.locator("#latest-record-json").textContent());
+    const initialInstruction = calls[0].input[0].content[0].text;
+
+    assert.equal(result.completed, true);
+    assert.equal(record.firstName, "Grace");
+    assert.equal(record.lastName, "Hopper");
+    assert.match(result.text, new RegExp(record.id));
+    assert.match(initialInstruction, /Follow these steps in order/);
+    assert.match(initialInstruction, /Wait for about 50 ms/);
+    assert.match(initialInstruction, /"firstName": "Grace"/);
+  } finally {
+    await automify?.close();
+  }
+});
+
+test("e2e: browser sequential task builder preserves page state across step runs", async () => {
+  let automify;
+  const calls = [];
+
+  try {
+    automify = await createBrowserAutomify({
+      openaiApiKey: "test-token",
+      model: "test-browser-model",
+      headless: true,
+      url: pathToFileURL(join(rootDirectory, "docs/demo.html")).href
+    });
+
+    const client = scriptedSequentialClient(calls, [
+      {
+        actions: [() => clickCenter(automify.page, "#first-name"), { type: "type", text: "Katherine" }]
+      },
+      {
+        actions: [() => clickCenter(automify.page, "#last-name"), { type: "type", text: "Johnson" }]
+      },
+      {
+        actions: [() => clickCenter(automify.page, "#person-form button")]
+      },
+      {
+        finalText: async () => automify.page.locator("#latest-record-json").textContent()
+      }
+    ]);
+    automify.client = client;
+
+    const result = await automify
+      .task({ mode: "sequential" })
+      .addStep("Fill the first name.")
+      .addStep("Fill the last name.")
+      .addStep("Submit the form.")
+      .addExtract("Read the latest saved record JSON.", {
+        key: "record",
+        shape: {
+          id: "string",
+          firstName: "string",
+          lastName: "string"
+        }
+      })
+      .run();
+    const record = JSON.parse(await automify.page.locator("#latest-record-json").textContent());
+    const initialCalls = calls.filter((call) => !call.previous_response_id);
+
+    assert.equal(result.completed, true);
+    assert.equal(record.firstName, "Katherine");
+    assert.equal(record.lastName, "Johnson");
+    assert.equal(result.parsed.record.firstName, "Katherine");
+    assert.equal(result.parsed.record.lastName, "Johnson");
+    assert.equal(result.taskSteps.length, 4);
+    assert.equal(result.steps.length, 5);
+    assert.equal(initialCalls.length, 4);
+    assert.match(initialCalls[0].input[0].content[0].text, /Complete task step 1 of 4/);
+    assert.match(initialCalls[3].input[0].content[0].text, /extract: Read the latest saved record JSON/);
+    assert.equal(initialCalls[3].text.format.name, "record");
+  } finally {
+    await automify?.close();
+  }
+});
+
+test("e2e: browser automify records a real page run", async () => {
+  const fixture = await createFixture();
+  const dir = await mkdtemp(join(tmpdir(), "automify-e2e-recording-"));
+  const recordingPath = join(dir, "run.mp4");
+  const ffmpegCalls = [];
+  const automify = await createBrowserAutomify({
+    openaiApiKey: "test-token",
+    client: scriptedClient([], []),
+    model: "test-browser-model",
+    headless: true,
+    url: fixture.url,
+    displayWidth: 640,
+    displayHeight: 480
+  });
+
+  try {
+    const result = await automify.do("Summarize this test page.", {
+      recording: {
+        path: recordingPath,
+        fps: 2,
+        captureIntervalMs: 10,
+        execFile: async (command, args) => {
+          ffmpegCalls.push({ command, args });
+          await writeFile(args.at(-1), Buffer.from("video"));
+        }
+      }
+    });
+    const video = await readFile(recordingPath);
+
+    assert.equal(result.completed, true);
+    assert.equal(result.recording.path, recordingPath);
+    assert.equal(result.recording.bytes, video.byteLength);
+    assert.ok(result.recording.frames >= 1);
+    assert.equal(video.toString(), "video");
+    assert.equal(ffmpegCalls.length, 1);
+    assert.equal(ffmpegCalls[0].command, "ffmpeg");
+  } finally {
+    await automify.close();
+    await fixture.cleanup();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 function scriptedClient(calls, actions, finalText = "Done") {
   return {
     async createResponse(payload) {
@@ -135,6 +287,50 @@ function scriptedClient(calls, actions, finalText = "Done") {
       }
 
       const action = typeof actions[index] === "function" ? await actions[index]() : actions[index];
+
+      return {
+        id: `resp_${index}`,
+        output: [
+          {
+            type: "computer_call",
+            call_id: `call_${index}`,
+            action,
+            pending_safety_checks: []
+          }
+        ]
+      };
+    }
+  };
+}
+
+function scriptedSequentialClient(calls, runs) {
+  let runIndex = -1;
+  let actionIndex = 0;
+
+  return {
+    async createResponse(payload) {
+      if (!payload.previous_response_id) {
+        runIndex += 1;
+        actionIndex = 0;
+      }
+
+      const index = calls.length;
+      calls.push(payload);
+      const run = runs[runIndex] ?? {};
+      const actions = run.actions ?? [];
+
+      if (actionIndex >= actions.length) {
+        const finalText = run.finalText ?? "Done";
+        const text = typeof finalText === "function" ? await finalText() : finalText;
+        return {
+          id: `resp_${index}`,
+          output: [{ type: "message", content: [{ type: "output_text", text }] }]
+        };
+      }
+
+      const actionSource = actions[actionIndex];
+      const action = typeof actionSource === "function" ? await actionSource() : actionSource;
+      actionIndex += 1;
 
       return {
         id: `resp_${index}`,

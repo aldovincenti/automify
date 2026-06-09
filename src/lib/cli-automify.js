@@ -4,6 +4,7 @@ import { OpenAIResponsesClient } from "./openai-responses-client.js";
 import { filesToEvaluate } from "./file-data.js";
 import { applyCliPreset } from "./presets.js";
 import { buildRunResult, buildTextConfig } from "./result.js";
+import { createTask } from "./task.js";
 import {
   AUTOMIFY_OPTION_KEYS,
   COMMAND_OPTION_KEYS,
@@ -290,6 +291,42 @@ export class CliAutomify {
     } finally {
       this.silent = previousSilent;
     }
+  }
+
+  task(options = {}) {
+    return createTask(this, options);
+  }
+
+  addStep(instruction, options = {}) {
+    return this.task().addStep(instruction, options);
+  }
+
+  addAct(instruction, options = {}) {
+    return this.task().addAct(instruction, options);
+  }
+
+  addWait(conditionOrMs, options = {}) {
+    return this.task().addWait(conditionOrMs, options);
+  }
+
+  addWaitFor(condition, options = {}) {
+    return this.task().addWaitFor(condition, options);
+  }
+
+  addPause(ms, options = {}) {
+    return this.task().addPause(ms, options);
+  }
+
+  addObserve(instruction, options = {}) {
+    return this.task().addObserve(instruction, options);
+  }
+
+  addExtract(instruction, options = {}) {
+    return this.task().addExtract(instruction, options);
+  }
+
+  addAssert(instruction, options = {}) {
+    return this.task().addAssert(instruction, options);
   }
 
   async #confirm(command, call, response, options) {

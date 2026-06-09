@@ -777,6 +777,8 @@ export interface CliCommandOptions {
 export interface AutomifyResult {
   response: Record<string, unknown>;
   steps: Array<Record<string, unknown>>;
+  taskSteps?: TaskStepResult[];
+  extracts?: Record<string, unknown>;
   trace?: Array<Record<string, unknown>>;
   ok: boolean;
   status: "succeeded";
@@ -807,39 +809,79 @@ export interface AutomifyCompleteEvent {
 export class Automify {
   constructor(options: AutomifyOptions);
   do(instruction: string, options?: DoOptions): Promise<AutomifyResult>;
-  task(options?: DoOptions): AutomifyTask;
+  task(options?: TaskRunOptions): AutomifyTask;
   addStep(instruction: string, options?: TaskStepOptions): AutomifyTask;
+  addAct(instruction: string, options?: TaskStepOptions): AutomifyTask;
   addWait(conditionOrMs?: string | number, options?: TaskStepOptions): AutomifyTask;
+  addWaitFor(condition?: string, options?: TaskStepOptions): AutomifyTask;
+  addPause(ms: number, options?: TaskStepOptions): AutomifyTask;
+  addObserve(instruction: string, options?: TaskStepOptions): AutomifyTask;
+  addExtract(instruction: string, options?: TaskExtractOptions | OutputFormat): AutomifyTask;
+  addAssert(instruction: string, options?: TaskStepOptions): AutomifyTask;
 }
 
 export function createAutomify(options: AutomifyOptions): Automify;
+
+export type TaskMode = "single" | "sequential";
+export type TaskRunOptions = (DoOptions | CliAutomifyDoOptions) & { mode?: TaskMode };
 
 export interface TaskStepOptions {
   label?: string;
   notes?: string;
 }
 
+export interface TaskExtractOptions extends TaskStepOptions {
+  key?: string;
+  shape?: JsonOutputShape | Record<string, unknown>;
+  schema?: JsonOutputShape | Record<string, unknown>;
+  output?: OutputFormat;
+  description?: string;
+  strict?: boolean;
+  parse?: boolean;
+}
+
+export interface TaskStepResult {
+  index: number;
+  type: "step" | "wait" | "pause" | "observe" | "extract" | "assert" | string;
+  instruction: string;
+  label?: string;
+  notes?: string;
+  status: "succeeded" | "failed";
+  durationMs?: number;
+  responseId?: string;
+  text?: string;
+  parsed?: unknown;
+  modelSteps?: number;
+  error?: string;
+}
+
 export class AutomifyTask {
-  constructor(automify: Automify, options?: DoOptions);
+  constructor(automify: Automify | CliAutomify, options?: TaskRunOptions);
   addStep(instruction: string, options?: TaskStepOptions): this;
   step(instruction: string, options?: TaskStepOptions): this;
+  addAct(instruction: string, options?: TaskStepOptions): this;
+  act(instruction: string, options?: TaskStepOptions): this;
   addWait(conditionOrMs?: string | number, options?: TaskStepOptions): this;
   wait(conditionOrMs?: string | number, options?: TaskStepOptions): this;
+  addWaitFor(condition?: string, options?: TaskStepOptions): this;
+  waitFor(condition?: string, options?: TaskStepOptions): this;
+  addPause(ms: number, options?: TaskStepOptions): this;
+  pause(ms: number, options?: TaskStepOptions): this;
   addObserve(instruction: string, options?: TaskStepOptions): this;
   observe(instruction: string, options?: TaskStepOptions): this;
-  addExtract(instruction: string, options?: TaskStepOptions): this;
-  extract(instruction: string, options?: TaskStepOptions): this;
+  addExtract(instruction: string, options?: TaskExtractOptions | OutputFormat): this;
+  extract(instruction: string, options?: TaskExtractOptions | OutputFormat): this;
   addAssert(instruction: string, options?: TaskStepOptions): this;
   assert(instruction: string, options?: TaskStepOptions): this;
   addData(data: Record<string, unknown> | unknown): this;
   withData(data: Record<string, unknown> | unknown): this;
-  withOptions(options?: DoOptions): this;
+  withOptions(options?: TaskRunOptions): this;
   toInstruction(): string;
-  run(options?: DoOptions): Promise<AutomifyResult>;
-  do(options?: DoOptions): Promise<AutomifyResult>;
+  run(options?: TaskRunOptions): Promise<AutomifyResult | CliAutomifyResult>;
+  do(options?: TaskRunOptions): Promise<AutomifyResult | CliAutomifyResult>;
 }
 
-export function createTask(automify: Automify, options?: DoOptions): AutomifyTask;
+export function createTask(automify: Automify | CliAutomify, options?: TaskRunOptions): AutomifyTask;
 
 export function createComputerAutomify(options: AutomifyOptions): Automify;
 
@@ -1045,6 +1087,8 @@ export type CliAutomifyDoOptions = CliDoOptions;
 export interface CliAutomifyResult {
   response: Record<string, unknown>;
   steps: Array<Record<string, unknown>>;
+  taskSteps?: TaskStepResult[];
+  extracts?: Record<string, unknown>;
   ok: boolean;
   status: "succeeded";
   completed: boolean;
@@ -1069,6 +1113,15 @@ export interface CliAutomifyCompleteEvent {
 export class CliAutomify {
   constructor(options: CliAutomifyOptions);
   do(instruction: string, options?: CliAutomifyDoOptions): Promise<CliAutomifyResult>;
+  task(options?: TaskRunOptions): AutomifyTask;
+  addStep(instruction: string, options?: TaskStepOptions): AutomifyTask;
+  addAct(instruction: string, options?: TaskStepOptions): AutomifyTask;
+  addWait(conditionOrMs?: string | number, options?: TaskStepOptions): AutomifyTask;
+  addWaitFor(condition?: string, options?: TaskStepOptions): AutomifyTask;
+  addPause(ms: number, options?: TaskStepOptions): AutomifyTask;
+  addObserve(instruction: string, options?: TaskStepOptions): AutomifyTask;
+  addExtract(instruction: string, options?: TaskExtractOptions | OutputFormat): AutomifyTask;
+  addAssert(instruction: string, options?: TaskStepOptions): AutomifyTask;
 }
 
 export function createCliAutomify(options: CliAutomifyOptions): CliAutomify;

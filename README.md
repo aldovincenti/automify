@@ -430,11 +430,14 @@ const run = await browser
   .addStep("Open the contacts page.")
   .addWait("the contacts table is visible")
   .addStep("Create the lead from data.")
-  .addExtract("Return the saved record JSON.")
+  .addExtract("Return the saved record JSON.", {
+    key: "lead",
+    shape: { id: "string", firstName: "string", lastName: "string" }
+  })
   .addData({ firstName: "Ada", lastName: "Lovelace" })
-  .run({
-    output: jsonOutput("lead", { id: "string", firstName: "string", lastName: "string" })
-  });
+  .run();
+
+console.log(run.parsed.lead.id);
 ```
 
 You can also start from `browser.task()` when you want to keep a reusable builder variable:
@@ -446,18 +449,54 @@ const task = browser
   .addWait("the invoice list has finished loading")
   .addObserve("Find the newest unpaid invoice.")
   .addAssert("Confirm the customer name matches the data.")
-  .addExtract("Return the invoice id and total.")
+  .addExtract("Return the invoice id and total.", {
+    key: "invoice",
+    shape: { id: "string", total: "number" }
+  })
+  .addExtract("Return audit metadata.", {
+    key: "audit",
+    shape: { requestId: "string" }
+  })
   .withData({ customerName: "Ada Lovelace" });
 
-const run = await task.run({
-  output: jsonOutput("invoice", { id: "string", total: "number" })
-});
+const run = await task.run();
 ```
 
 Builder steps are converted into one ordered `.do()` instruction, so hooks, screenshots, output parsing, safety
-options, and limits behave the same as a normal run. `addStep()` is the general-purpose method; `addWait()`,
-`addObserve()`, `addExtract()`, and `addAssert()` add readable intent for common phases. Short aliases without `add`
-also work: `step()`, `wait()`, `observe()`, `extract()`, and `assert()`.
+options, and limits behave the same as a normal run. `addStep()` is the general-purpose method; `addAct()` is an alias
+for action-oriented steps. `addWait("condition")` waits for a visible condition; `addWait(500)` remains supported and
+maps to `addPause(500)`. `addObserve()`, `addExtract()`, and `addAssert()` add readable intent for common phases. When
+`addExtract()` gets `{ key, shape }`, Automify builds the structured output for you, and multiple extracts are returned
+under `run.parsed[key]`. Short aliases without `add` also work: `step()`, `act()`, `wait()`, `waitFor()`, `pause()`,
+`observe()`, `extract()`, and `assert()`.
+
+Use `task({ mode: "sequential" })` when each step should be its own model run. Sequential mode preserves the same
+builder API, but executes every non-pause step separately, keeps browser or desktop state between steps, and returns a
+`taskSteps` audit trail in addition to the aggregated action `steps`. `addPause(ms)` is deterministic in this mode and
+does not call the model. `addAssert()` asks the model for a structured pass/fail check and fails the task when the
+assertion is not true.
+
+```js
+const run = await browser
+  .task({ mode: "sequential" })
+  .addStep("Fill the first name field from data.")
+  .addStep("Fill the last name field from data.")
+  .addStep("Submit the form.")
+  .addExtract("Return the saved record JSON.", {
+    key: "record",
+    shape: { id: "string", firstName: "string", lastName: "string" }
+  })
+  .addData({ firstName: "Dorothy", lastName: "Vaughan" })
+  .run({ recording: "/tmp/automify-sequential.mp4" });
+
+console.log(run.taskSteps.length);
+console.log(run.parsed.record.id);
+console.log(run.recording.path);
+```
+
+In sequential mode, a run-level `output` applies only to the final non-pause step. Extract outputs still belong on
+`addExtract()` steps; if you define multiple extracts, give each one a `key`. Browser and desktop recordings cover the
+whole sequential task. CLI tasks can run sequentially, but CLI adapters do not record the screen.
 
 - `data` is structured JSON for the task.
 - `evaluate` sends images or text files directly to the model.
@@ -695,7 +734,7 @@ npm run test:live:qemu:desktop
 
 `npm run test:live:qemu` runs only the real QEMU Debian boot smoke test, without OpenAI. `npm run test:live:qemu:desktop` runs the real QEMU desktop smoke test with the default Debian image. Set `AUTOMIFY_QEMU_IMAGE=/path/to/linux.qcow2` only when you want the desktop smoke test or the QEMU live tests to use a custom image. The equivalent direct flags are `RUN_QEMU_DEBIAN_E2E=1 npm run test:e2e` and `RUN_QEMU_DESKTOP_E2E=1 npm run test:e2e`.
 
-`npm run test:live` runs `test/e2e/live-openai.e2e.test.js` with `RUN_OPENAI_E2E=1`. By default, it runs the live OpenAI CLI and Docker CLI checks and skips the browser, Docker desktop, and QEMU checks.
+`npm run test:live` runs `test/e2e/live-openai.e2e.test.js` with `RUN_OPENAI_E2E=1`. By default, it runs the live OpenAI CLI and Docker CLI checks and skips the browser, Docker desktop, and QEMU checks. Set `RUN_OPENAI_BROWSER_E2E=1` to include the live browser demo tests, including task-builder and recording coverage.
 
 Run every live test:
 

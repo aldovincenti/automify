@@ -383,8 +383,32 @@ export class Automify {
     return this.task().addStep(instruction, options);
   }
 
+  addAct(instruction, options = {}) {
+    return this.task().addAct(instruction, options);
+  }
+
   addWait(conditionOrMs, options = {}) {
     return this.task().addWait(conditionOrMs, options);
+  }
+
+  addWaitFor(condition, options = {}) {
+    return this.task().addWaitFor(condition, options);
+  }
+
+  addPause(ms, options = {}) {
+    return this.task().addPause(ms, options);
+  }
+
+  addObserve(instruction, options = {}) {
+    return this.task().addObserve(instruction, options);
+  }
+
+  addExtract(instruction, options = {}) {
+    return this.task().addExtract(instruction, options);
+  }
+
+  addAssert(instruction, options = {}) {
+    return this.task().addAssert(instruction, options);
   }
 
   async #initialInput(instruction, data, options, trace) {

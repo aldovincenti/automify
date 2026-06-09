@@ -299,6 +299,133 @@ test(
 );
 
 test(
+  "live demo: OpenAI runs browser task steps with screen recording",
+  { skip: !shouldRunBrowserDemo, timeout: 180_000 },
+  async () => {
+    const dir = await mkdtemp(join(tmpdir(), "automify-live-browser-task-recording-"));
+    const recordingPath = join(dir, "run.mp4");
+    const automify = initAutomify({
+      provider: {
+        type: "openai",
+        apiKey: process.env.OPENAI_API_KEY,
+        model: liveModel
+      },
+      silent: process.env.AUTOMIFY_LIVE_LOGS !== "1"
+    });
+    const browser = await automify.browser({
+      startUrl: pathToFileURL(join(rootDirectory, "docs/demo.html")).href,
+      headless: true
+    });
+
+    try {
+      const run = await browser
+        .addStep("Add the person from data.")
+        .addWait(500)
+        .addExtract("Return the saved record JSON.")
+        .addData({ firstName: "Grace", lastName: "Hopper" })
+        .run({
+          screenRecording: {
+            path: recordingPath,
+            fps: 2,
+            captureIntervalMs: 250,
+            execFile: async (command, args) => {
+              assert.equal(command, "ffmpeg");
+              await writeFile(args.at(-1), Buffer.from("video"));
+            }
+          },
+          output: jsonOutput("person_record", {
+            id: "string",
+            firstName: "string",
+            lastName: "string"
+          })
+        });
+
+      const record = JSON.parse(await browser.page.locator("#latest-record-json").textContent());
+      const video = await readFile(recordingPath);
+      assert.equal(run.completed, true);
+      assert.ok(run.response.id);
+      assert.equal(record.firstName, "Grace");
+      assert.equal(record.lastName, "Hopper");
+      assert.equal(run.parsed.firstName, "Grace");
+      assert.equal(run.parsed.lastName, "Hopper");
+      assert.match(run.parsed.id, /^[0-9a-f-]{36}$/i);
+      assert.equal(run.recording.path, recordingPath);
+      assert.equal(run.recording.bytes, video.byteLength);
+      assert.ok(run.recording.frames >= 1);
+    } finally {
+      await browser.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+);
+
+test(
+  "live demo: OpenAI runs sequential browser task steps with screen recording",
+  { skip: !shouldRunBrowserDemo, timeout: 240_000 },
+  async () => {
+    const dir = await mkdtemp(join(tmpdir(), "automify-live-browser-sequential-recording-"));
+    const recordingPath = join(dir, "run.mp4");
+    const automify = initAutomify({
+      provider: {
+        type: "openai",
+        apiKey: process.env.OPENAI_API_KEY,
+        model: liveModel
+      },
+      silent: process.env.AUTOMIFY_LIVE_LOGS !== "1"
+    });
+    const browser = await automify.browser({
+      startUrl: pathToFileURL(join(rootDirectory, "docs/demo.html")).href,
+      headless: true
+    });
+
+    try {
+      const run = await browser
+        .task({ mode: "sequential" })
+        .addStep("Fill only the first name field with Dorothy.")
+        .addStep("Fill only the last name field with Vaughan.")
+        .addStep("Submit the form.")
+        .addExtract("Return the saved record JSON.", {
+          key: "record",
+          shape: {
+            id: "string",
+            firstName: "string",
+            lastName: "string"
+          }
+        })
+        .run({
+          screenRecording: {
+            path: recordingPath,
+            fps: 2,
+            captureIntervalMs: 250,
+            execFile: async (command, args) => {
+              assert.equal(command, "ffmpeg");
+              await writeFile(args.at(-1), Buffer.from("video"));
+            }
+          }
+        });
+
+      const record = JSON.parse(await browser.page.locator("#latest-record-json").textContent());
+      const video = await readFile(recordingPath);
+      assert.equal(run.completed, true);
+      assert.ok(run.response.id);
+      assert.equal(record.firstName, "Dorothy");
+      assert.equal(record.lastName, "Vaughan");
+      assert.equal(run.parsed.record.firstName, "Dorothy");
+      assert.equal(run.parsed.record.lastName, "Vaughan");
+      assert.match(run.parsed.record.id, /^[0-9a-f-]{36}$/i);
+      assert.equal(run.taskSteps.length, 4);
+      assert.ok(run.steps.length >= 3);
+      assert.equal(run.recording.path, recordingPath);
+      assert.equal(run.recording.bytes, video.byteLength);
+      assert.ok(run.recording.frames >= 1);
+    } finally {
+      await browser.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+);
+
+test(
   "live demo: OpenAI uses the QEMU virtual desktop terminal example",
   { skip: !shouldRunQemuDesktop, timeout: 600_000 },
   async () => {

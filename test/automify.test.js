@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { createAutomify, MaxStepsExceededError, SafetyCheckError } from "../src/index.js";
+import { createAutomify, jsonOutput, MaxStepsExceededError, SafetyCheckError } from "../src/index.js";
 
 test("do sends an initial Responses computer-use request and executes returned actions", async () => {
   const calls = [];
@@ -117,6 +117,297 @@ test("task builder composes ordered step instructions and delegates to do", asyn
   assert.match(text, /2\. wait: Wait until the contacts table is visible\./);
   assert.match(text, /3\. \[read\] Return the first contact\./);
   assert.match(text, /"accountId": "acct_123"/);
+});
+
+test("task builder combines keyed extract outputs into one parsed result", async () => {
+  const calls = [];
+  const automify = createAutomify({
+    client: {
+      async createResponse(payload) {
+        calls.push(payload);
+        return {
+          id: "resp_done",
+          output: [
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text: JSON.stringify({
+                    lead: { id: "lead_123", firstName: "Ada" },
+                    audit: { requestId: "req_456" }
+                  })
+                }
+              ]
+            }
+          ]
+        };
+      }
+    },
+    model: "test-computer-model",
+    computer: {
+      displayWidth: 800,
+      displayHeight: 600,
+      environment: "browser",
+      execute() {},
+      screenshot() {
+        return Buffer.from("fake-png");
+      }
+    }
+  });
+
+  const result = await automify
+    .addStep("Create the lead.")
+    .addExtract("Return the saved lead.", {
+      key: "lead",
+      shape: { id: "string", firstName: "string" }
+    })
+    .addExtract("Return audit metadata.", {
+      key: "audit",
+      shape: { requestId: "string" }
+    })
+    .run();
+
+  assert.equal(calls[0].text.format.name, "task_extracts");
+  assert.deepEqual(Object.keys(calls[0].text.format.schema.properties), ["lead", "audit"]);
+  assert.equal(result.parsed.lead.id, "lead_123");
+  assert.equal(result.parsed.audit.requestId, "req_456");
+});
+
+test("task builder can use a single extract output directly", async () => {
+  const calls = [];
+  const automify = createAutomify({
+    client: {
+      async createResponse(payload) {
+        calls.push(payload);
+        return {
+          id: "resp_done",
+          output: [{ type: "message", content: [{ type: "output_text", text: '{"id":"lead_123"}' }] }]
+        };
+      }
+    },
+    model: "test-computer-model",
+    computer: {
+      execute() {},
+      screenshot() {
+        return Buffer.from("fake-png");
+      }
+    }
+  });
+
+  const result = await automify.addExtract("Return the saved lead.", jsonOutput("lead", { id: "string" })).run();
+
+  assert.equal(calls[0].text.format.name, "lead");
+  assert.equal(result.parsed.id, "lead_123");
+});
+
+test("task builder rejects ambiguous extract and run outputs", async () => {
+  const automify = createAutomify({
+    client: {
+      async createResponse() {
+        return { id: "resp_done", output: [] };
+      }
+    },
+    model: "test-computer-model",
+    computer: {
+      execute() {},
+      screenshot() {
+        return Buffer.from("fake-png");
+      }
+    }
+  });
+
+  await assert.rejects(
+    () =>
+      automify
+        .addExtract("Return the saved lead.", {
+          key: "lead",
+          shape: { id: "string" }
+        })
+        .run({
+          output: jsonOutput("other", { ok: "boolean" })
+        }),
+    /extract outputs cannot be combined with run output/
+  );
+});
+
+test("sequential task mode runs each model step separately and records pauses", async () => {
+  const calls = [];
+  const automify = createAutomify({
+    client: {
+      async createResponse(payload) {
+        calls.push(payload);
+        return {
+          id: `resp_${calls.length}`,
+          output: [{ type: "message", content: [{ type: "output_text", text: `done ${calls.length}` }] }]
+        };
+      }
+    },
+    model: "test-computer-model",
+    computer: {
+      displayWidth: 800,
+      displayHeight: 600,
+      environment: "browser",
+      execute() {},
+      screenshot() {
+        return Buffer.from("fake-png");
+      }
+    }
+  });
+
+  const result = await automify
+    .task({ mode: "sequential" })
+    .addStep("Open the contacts page.")
+    .addPause(1)
+    .addStep("Read the first contact.")
+    .run({ data: { accountId: "acct_123" } });
+
+  assert.equal(result.completed, true);
+  assert.equal(calls.length, 2);
+  assert.match(calls[0].input[0].content[0].text, /Complete task step 1 of 3/);
+  assert.match(calls[0].input[0].content[0].text, /Open the contacts page/);
+  assert.match(calls[0].input[0].content[0].text, /"accountId": "acct_123"/);
+  assert.match(calls[1].input[0].content[0].text, /Complete task step 3 of 3/);
+  assert.equal(result.taskSteps.length, 3);
+  assert.equal(result.taskSteps[1].type, "pause");
+  assert.equal(result.taskSteps[1].status, "succeeded");
+  assert.equal(result.taskSteps[2].responseId, "resp_2");
+});
+
+test("sequential task mode runs keyed extracts separately and aggregates parsed results", async () => {
+  const calls = [];
+  const automify = createAutomify({
+    client: {
+      async createResponse(payload) {
+        calls.push(payload);
+        const text = payload.text?.format?.name === "lead" ? '{"id":"lead_123"}' : '{"requestId":"req_456"}';
+        return {
+          id: `resp_${calls.length}`,
+          output: [{ type: "message", content: [{ type: "output_text", text }] }]
+        };
+      }
+    },
+    model: "test-computer-model",
+    computer: {
+      execute() {},
+      screenshot() {
+        return Buffer.from("fake-png");
+      }
+    }
+  });
+
+  const result = await automify
+    .task({ mode: "sequential" })
+    .addExtract("Return the saved lead.", {
+      key: "lead",
+      shape: { id: "string" }
+    })
+    .addExtract("Return audit metadata.", {
+      key: "audit",
+      shape: { requestId: "string" }
+    })
+    .run();
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].text.format.name, "lead");
+  assert.equal(calls[1].text.format.name, "audit");
+  assert.deepEqual(result.parsed, {
+    lead: { id: "lead_123" },
+    audit: { requestId: "req_456" }
+  });
+  assert.deepEqual(result.extracts, result.parsed);
+});
+
+test("sequential task mode fails when an assertion does not pass", async () => {
+  const calls = [];
+  const automify = createAutomify({
+    client: {
+      async createResponse(payload) {
+        calls.push(payload);
+        return {
+          id: "resp_assert",
+          output: [
+            {
+              type: "message",
+              content: [{ type: "output_text", text: '{"passed":false,"reason":"total is missing"}' }]
+            }
+          ]
+        };
+      }
+    },
+    model: "test-computer-model",
+    computer: {
+      execute() {},
+      screenshot() {
+        return Buffer.from("fake-png");
+      }
+    }
+  });
+
+  await assert.rejects(
+    () => automify.task({ mode: "sequential" }).addAssert("The total is visible.").run(),
+    (error) => {
+      assert.match(error.message, /task assertion failed: total is missing/);
+      assert.equal(error.taskSteps.length, 1);
+      assert.equal(error.taskSteps[0].status, "failed");
+      assert.equal(error.taskSteps[0].error, "total is missing");
+      return true;
+    }
+  );
+  assert.equal(calls[0].text.format.name, "task_assertion");
+});
+
+test("sequential task mode records the whole browser task once", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "automify-sequential-recording-"));
+  const recordingPath = join(dir, "run.mp4");
+  const ffmpegCalls = [];
+  const automify = createAutomify({
+    client: {
+      async createResponse() {
+        return { id: "resp_done", output: [] };
+      }
+    },
+    model: "test-computer-model",
+    computer: {
+      displayWidth: 800,
+      displayHeight: 600,
+      environment: "browser",
+      execute() {},
+      screenshot() {
+        return Buffer.from("fake-png");
+      }
+    }
+  });
+
+  try {
+    const result = await automify
+      .task({ mode: "sequential" })
+      .addStep("Inspect the page.")
+      .addPause(1)
+      .addStep("Summarize the page.")
+      .run({
+        screenshots: {
+          recording: {
+            path: recordingPath,
+            fps: 2,
+            captureIntervalMs: 1000,
+            execFile: async (command, args) => {
+              ffmpegCalls.push({ command, args });
+              await writeFile(args.at(-1), Buffer.from("video"));
+            }
+          }
+        }
+      });
+    const video = await readFile(recordingPath);
+
+    assert.equal(result.completed, true);
+    assert.equal(result.recording.path, recordingPath);
+    assert.equal(result.recording.bytes, video.byteLength);
+    assert.ok(result.recording.frames >= 1);
+    assert.equal(ffmpegCalls.length, 1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
 
 test("do records the screen when recording options are provided", async () => {

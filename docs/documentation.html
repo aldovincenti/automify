@@ -250,14 +250,46 @@ try {
   .addStep("Open the contacts page.")
   .addWait("the contacts table is visible")
   .addStep("Create the lead from data.")
-  .addExtract("Return the saved record JSON.")
+  .addExtract("Return the saved record JSON.", {
+    key: "lead",
+    shape: { id: "string", firstName: "string", lastName: "string" }
+  })
   .addData({ firstName: "Ada", lastName: "Lovelace" })
-  .run({
-    output: jsonOutput("lead", { id: "string", firstName: "string", lastName: "string" })
-  });</code></pre>
+  .run();
+
+console.log(run.parsed.lead.id);</code></pre>
           <p>
             Start with `browser.task()` when you want to keep a reusable builder. Alongside `addStep()`, Automify
-            provides `addWait()`, `addObserve()`, `addExtract()`, and `addAssert()` plus short aliases without `add`.
+            provides `addAct()`, `addWait()`, `addPause()`, `addObserve()`, `addExtract()`, and `addAssert()` plus
+            short aliases without `add`. `addExtract()` can accept `{ key, shape }`; multiple extracts are merged into
+            one structured result under `run.parsed[key]`.
+          </p>
+          <p>
+            Pass `task({ mode: "sequential" })` when each builder step should be its own model run. Sequential mode
+            keeps browser or desktop state between steps, returns a `taskSteps` audit trail, and aggregates underlying
+            action steps into `run.steps`. `addPause(ms)` is deterministic and does not call the model; `addAssert()`
+            performs a structured pass/fail check and fails the task when the assertion is not true.
+          </p>
+          <pre><code>const run = await browser
+  .task({ mode: "sequential" })
+  .addStep("Fill the first name field from data.")
+  .addStep("Fill the last name field from data.")
+  .addStep("Submit the form.")
+  .addExtract("Return the saved record JSON.", {
+    key: "record",
+    shape: { id: "string", firstName: "string", lastName: "string" }
+  })
+  .addData({ firstName: "Dorothy", lastName: "Vaughan" })
+  .run({ recording: "/tmp/automify-sequential.mp4" });
+
+console.log(run.taskSteps.length);
+console.log(run.parsed.record.id);
+console.log(run.recording.path);</code></pre>
+          <p>
+            In sequential mode, a run-level `output` applies only to the final non-pause step. Extract outputs still
+            belong on `addExtract()` steps; if you define multiple extracts, give each one a `key`. Browser and desktop
+            recordings cover the whole sequential task. CLI tasks can run sequentially, but CLI adapters do not record
+            the screen.
           </p>
           <h3>Record visual runs</h3>
           <p>

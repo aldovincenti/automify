@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { test } from "node:test";
 
-import { createCliAutomify, runShellCommand } from "../src/index.js";
+import { createCliAutomify, jsonOutput, runShellCommand } from "../src/index.js";
 
 test("CliAutomify runs model-requested commands and returns outputs", async () => {
   const payloads = [];
@@ -72,6 +72,91 @@ test("CliAutomify runs model-requested commands and returns outputs", async () =
   assert.equal(payloads[1].input[0].type, "function_call_output");
   assert.equal(payloads[1].input[0].call_id, "call_1");
   assert.match(payloads[1].input[0].output, /tmp\/project/);
+});
+
+test("CliAutomify supports the task builder and keyed extracts", async () => {
+  const payloads = [];
+  const cli = createCliAutomify({
+    client: {
+      async createResponse(payload) {
+        payloads.push(payload);
+        return {
+          id: "resp_done",
+          output: [{ type: "message", content: [{ type: "output_text", text: '{"summary":{"ok":true}}' }] }]
+        };
+      }
+    },
+    model: "test-cli-model",
+    runner: async () => ({ exitCode: 0, stdout: "", stderr: "" })
+  });
+
+  const result = await cli
+    .addStep("Inspect the project.")
+    .addExtract("Return a summary.", {
+      key: "summary",
+      shape: { ok: "boolean" }
+    })
+    .run();
+
+  assert.match(payloads[0].input[0].content[0].text, /Follow these steps in order/);
+  assert.equal(payloads[0].text.format.name, "task_extracts");
+  assert.equal(result.parsed.summary.ok, true);
+});
+
+test("CliAutomify supports a direct task extract output", async () => {
+  const payloads = [];
+  const cli = createCliAutomify({
+    client: {
+      async createResponse(payload) {
+        payloads.push(payload);
+        return {
+          id: "resp_done",
+          output: [{ type: "message", content: [{ type: "output_text", text: '{"ok":true}' }] }]
+        };
+      }
+    },
+    model: "test-cli-model",
+    runner: async () => ({ exitCode: 0, stdout: "", stderr: "" })
+  });
+
+  const result = await cli.addExtract("Return a summary.", jsonOutput("summary", { ok: "boolean" })).run();
+
+  assert.equal(payloads[0].text.format.name, "summary");
+  assert.equal(result.parsed.ok, true);
+});
+
+test("CliAutomify supports sequential task steps and keyed extracts", async () => {
+  const payloads = [];
+  const cli = createCliAutomify({
+    client: {
+      async createResponse(payload) {
+        payloads.push(payload);
+        const text = payload.text?.format?.name === "summary" ? '{"ok":true}' : "Done";
+        return {
+          id: `resp_${payloads.length}`,
+          output: [{ type: "message", content: [{ type: "output_text", text }] }]
+        };
+      }
+    },
+    model: "test-cli-model",
+    runner: async () => ({ exitCode: 0, stdout: "", stderr: "" })
+  });
+
+  const result = await cli
+    .task({ mode: "sequential" })
+    .addStep("Inspect the project.")
+    .addExtract("Return a summary.", {
+      key: "summary",
+      shape: { ok: "boolean" }
+    })
+    .run();
+
+  assert.equal(payloads.length, 2);
+  assert.match(payloads[0].input[0].content[0].text, /Complete task step 1 of 2/);
+  assert.match(payloads[1].input[0].content[0].text, /extract: Return a summary/);
+  assert.equal(payloads[1].text.format.name, "summary");
+  assert.equal(result.taskSteps.length, 2);
+  assert.deepEqual(result.parsed, { summary: { ok: true } });
 });
 
 test("CliAutomify can require command approval", async () => {
