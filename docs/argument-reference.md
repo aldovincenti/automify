@@ -4,7 +4,7 @@ This file is generated from `src/lib/argument-reference.js`.
 
 | Surface | Preferred arguments | Notes |
 | ------- | ------------------- | ----- |
-| `.do()` | `data`, `evaluate`, `output`, `limits`, `request`, `safety`, `hooks`, `screenshots`, `screenshot`, `command` | Use data for structured JSON, evaluate for files the model should inspect directly, limits.steps to change the max model-action turns, and command only on CLI surfaces. |
+| `.do()` | `data`, `evaluate`, `output`, `limits`, `request`, `safety`, `hooks`, `screenshots`, `screenshot`, `recording`, `command` | Use data for structured JSON, evaluate for files the model should inspect directly, limits.steps to change the max model-action turns, recording to save visual runs with ffmpeg, and command only on CLI surfaces. |
 | `automify.browser()` | `preset`, `startUrl`, `browser`, `viewport`, `launch`, `context`, `navigation`, `actionDelayMs`, `logFile` | Use preset: "browser-review" for a high-detail, bounded browser inspection run. Use logFile to capture browser and automation events. |
 | `automify.cli()` | `preset`, `command`, `limits`, `request`, `hooks`, `logFile` | Factory command policy is the default. Per-run command options override it for a single do() call. Use logFile to append CLI debug events as JSON Lines. |
 | `automify.dockerCli()` | `preset`, `container`, `additionalAptPackages`, `workdir`, `shared`, `sharedFiles`, `command`, `logFile` | Requires Docker to be installed and running. Use additionalAptPackages to apt-install packages before commands run. Use preset: "repo" to mount the current workspace at /workspace and allow common repo commands. Use logFile to capture CLI and Docker container events. |

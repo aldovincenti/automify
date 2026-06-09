@@ -59,7 +59,8 @@ export function initAutomify(options = {}) {
   };
   const computerDefaults = {
     ...defaults,
-    model: options.computerModel ?? provider.computerModel ?? provider.model
+    model: options.computerModel ?? provider.computerModel ?? provider.model,
+    screenRecording: options.screenRecording ?? options.recording ?? screenshots.recording
   };
 
   return {

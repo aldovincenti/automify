@@ -201,7 +201,7 @@ try {
           <h2>Use grouped options for new code.</h2>
           <p>
             `.do()` accepts a single run object. Prefer grouped options so input, evaluation files, screenshots,
-            safety, hooks, limits, and CLI command policy stay easy to scan.
+            recording, safety, hooks, limits, and CLI command policy stay easy to scan.
           </p>
           <pre><code>await automify.cli({
   command: {
@@ -218,6 +218,10 @@ try {
     final: "/tmp/automify-final.png",
     actions: "/tmp/automify-actions"
   },
+  recording: {
+    path: "/tmp/automify-run.mp4",
+    fps: 6
+  },
   screenshot: {
     detail: "high",
     maxWidth: 1600
@@ -233,8 +237,8 @@ try {
 });</code></pre>
           <p>
             The grouped names map to the flat names: `evaluate` maps to `filesToEvaluate`, `limits.steps` to
-            `maxSteps`, `screenshots.final` to `finalScreenshot`, `command.allow` to `allowedCommands`, and
-            `safety.domains` to `allowedDomains`.
+            `maxSteps`, `screenshots.final` to `finalScreenshot`, `recording` to `screenRecording`, `command.allow` to
+            `allowedCommands`, and `safety.domains` to `allowedDomains`.
           </p>
           <h3>Build longer tasks as steps</h3>
           <p>
@@ -254,6 +258,24 @@ try {
           <p>
             Start with `browser.task()` when you want to keep a reusable builder. Alongside `addStep()`, Automify
             provides `addWait()`, `addObserve()`, `addExtract()`, and `addAssert()` plus short aliases without `add`.
+          </p>
+          <h3>Record visual runs</h3>
+          <p>
+            Browser and computer-use adapters can record a run by polling screenshots and encoding them with `ffmpeg`.
+            Pass `recording` or `screenRecording` as a path, `true` for a temp MP4, or an object when you need `fps`,
+            `framesDir`, `keepFrames`, `ffmpegCommand`, or a custom `execFile`.
+          </p>
+          <pre><code>const run = await browser.do("Run the checkout smoke test.", {
+  screenRecording: {
+    path: "/tmp/automify-checkout.mp4",
+    fps: 6
+  }
+});
+
+console.log(run.recording.path);</code></pre>
+          <p>
+            CLI adapters do not produce screen recordings. The host process needs `ffmpeg` on PATH unless you configure
+            the encoder command.
           </p>
           <p>
             Adapter factories use the same grouped shape. Browser uses `startUrl`, `viewport`, `launch`, `context`,
@@ -1529,9 +1551,18 @@ await browser.do("Summarize the page without leaving the allowed domain.", {
   debug: true
 });</code></pre>
           <p>
-            Use hooks for traces, audit logs, policy decisions, action screenshots, full CLI logs, and provider
-            debugging.
+            Use hooks for traces, audit logs, policy decisions, action screenshots, screen recordings, full CLI logs,
+            and provider debugging.
           </p>
+          <pre><code>const run = await browser.do("Review the checkout flow.", {
+  screenshots: {
+    actions: "/tmp/automify-action-screenshots"
+  },
+  recording: "/tmp/automify-checkout.mp4",
+  trace: true
+});
+
+console.log(run.recording.path);</code></pre>
         </section>
 
         <section id="testing">

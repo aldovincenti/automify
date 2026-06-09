@@ -38,6 +38,8 @@ export const AUTOMIFY_OPTION_KEYS = new Set([
   "finalScreenshot",
   "actionScreenshots",
   "screenshots",
+  "recording",
+  "screenRecording",
   "trace",
   "silent",
   "debug",
@@ -229,6 +231,8 @@ export const DO_OPTION_KEYS = new Set([
   "finalScreenshot",
   "actionScreenshots",
   "screenshots",
+  "recording",
+  "screenRecording",
   "screenshot",
   "trace",
   "silent",
@@ -313,7 +317,8 @@ export function pickKnownOptions(options, allowedKeys) {
 
 export function normalizeAutomifyOptions(options = {}) {
   assertKnownOptions("Automify", options, AUTOMIFY_OPTION_KEYS);
-  const { viewport, limits, request, safety, hooks, screenshots, screenshot, ...rest } = options;
+  const { viewport, limits, request, safety, hooks, screenshots, screenshot, recording, screenRecording, ...rest } =
+    options;
   const viewportOptions = viewport ?? {};
   const limitOptions = limits ?? {};
   const safetyOptions = safety ?? {};
@@ -336,6 +341,8 @@ export function normalizeAutomifyOptions(options = {}) {
     initialScreenshot: rest.initialScreenshot ?? screenshotPaths.initial,
     finalScreenshot: rest.finalScreenshot ?? screenshotPaths.final,
     actionScreenshots: rest.actionScreenshots ?? screenshotPaths.actions ?? screenshotPaths.actionScreenshots,
+    screenRecording:
+      rest.screenRecording ?? screenRecording ?? rest.recording ?? recording ?? screenshotPaths.recording,
     screenshotDetail: rest.screenshotDetail ?? screenshotOptions.detail,
     screenshotMaxWidth: rest.screenshotMaxWidth ?? screenshotOptions.maxWidth ?? screenshotOptions.screenshotMaxWidth,
     screenshotMaxHeight:
@@ -347,7 +354,20 @@ export function normalizeAutomifyOptions(options = {}) {
 }
 
 function normalizeDoOptionAliases(options) {
-  const { evaluate, limits, request, safety, hooks, screenshots, screenshot, command, commands, ...rest } = options;
+  const {
+    evaluate,
+    limits,
+    request,
+    safety,
+    hooks,
+    screenshots,
+    screenshot,
+    recording,
+    screenRecording,
+    command,
+    commands,
+    ...rest
+  } = options;
 
   const commandOptions = commands ?? command;
   assertKnownOptions("do() command", commandOptions, COMMAND_OPTION_KEYS);
@@ -364,6 +384,7 @@ function normalizeDoOptionAliases(options) {
     initialScreenshot: rest.initialScreenshot ?? screenshots?.initial,
     finalScreenshot: rest.finalScreenshot ?? screenshots?.final,
     actionScreenshots: rest.actionScreenshots ?? screenshots?.actions ?? screenshots?.actionScreenshots,
+    screenRecording: rest.screenRecording ?? screenRecording ?? rest.recording ?? recording ?? screenshots?.recording,
     screenshotDetail: rest.screenshotDetail ?? screenshot?.detail,
     screenshotMaxWidth: rest.screenshotMaxWidth ?? screenshot?.maxWidth ?? screenshot?.screenshotMaxWidth,
     screenshotMaxHeight: rest.screenshotMaxHeight ?? screenshot?.maxHeight ?? screenshot?.screenshotMaxHeight,

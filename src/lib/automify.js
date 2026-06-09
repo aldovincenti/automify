@@ -6,6 +6,7 @@ import { OpenAIResponsesClient } from "./openai-responses-client.js";
 import { toDataUrl } from "./adapter-toolkit.js";
 import { filesToEvaluate } from "./file-data.js";
 import { buildRunResult, buildTextConfig } from "./result.js";
+import { startScreenRecording } from "./screen-recording.js";
 import { createTask } from "./task.js";
 import {
   callHook,
@@ -59,6 +60,7 @@ export class Automify {
       initialScreenshot,
       finalScreenshot,
       actionScreenshots,
+      screenRecording,
       trace,
       silent,
       debug,
@@ -88,6 +90,7 @@ export class Automify {
     this.initialScreenshot = initialScreenshot;
     this.finalScreenshot = finalScreenshot;
     this.actionScreenshots = actionScreenshots;
+    this.screenRecording = screenRecording;
     this.trace = trace;
     this.silent = silent;
     this.debug = debug;
@@ -104,6 +107,7 @@ export class Automify {
     const { data, options } = normalizeDoArguments(runOptions, maybeOptions);
     const previousSilent = this.silent;
     if ("silent" in options) this.silent = options.silent;
+    let screenRecording = null;
 
     try {
       const maxSteps = options.maxSteps ?? this.maxSteps;
@@ -121,12 +125,14 @@ export class Automify {
       const initialScreenshotPath = initialScreenshotPathFor(options, this);
       const finalScreenshotPath = finalScreenshotPathFor(options, this);
       const actionScreenshotsPath = actionScreenshotsPathFor(options, this);
+      const screenRecordingPath = screenRecordingPathFor(options, this);
       this.#debug("run_start", {
         model,
         maxSteps,
         initialScreenshot: initialScreenshotPath ?? null,
         finalScreenshot: finalScreenshotPath ?? null,
         actionScreenshots: actionScreenshotsPath ?? null,
+        screenRecording: screenRecordingPath ?? null,
         screenshotDetail: screenshotDetailFor(options, this),
         screenshotMaxWidth: screenshotMaxWidthFor(options, this),
         screenshotMaxHeight: screenshotMaxHeightFor(options, this)
@@ -138,10 +144,12 @@ export class Automify {
         initialScreenshot: initialScreenshotPath ?? null,
         finalScreenshot: finalScreenshotPath ?? null,
         actionScreenshots: actionScreenshotsPath ?? null,
+        screenRecording: screenRecordingPath ?? null,
         screenshotDetail: screenshotDetailFor(options, this)
       });
 
       await this.#assertAllowedCurrentUrl(options);
+      screenRecording = await this.#startScreenRecording({ instruction, data }, options, trace);
 
       const initial = await this.#initialInput(
         instruction,
@@ -174,6 +182,8 @@ export class Automify {
           const result = buildRunResult(response, steps, options.output);
           const finalScreenshot = await this.#saveFinalScreenshot({ response, steps }, options, trace);
           if (finalScreenshot) result.finalScreenshot = finalScreenshot;
+          const recording = await this.#stopScreenRecording(screenRecording, { response, steps }, trace);
+          if (recording) result.recording = recording;
           if (traceEnabled) result.trace = traceEvents;
           await this.#complete(result, { instruction, data }, options);
           return result;
@@ -358,6 +368,9 @@ export class Automify {
 
       throw new MaxStepsExceededError(maxSteps);
     } finally {
+      await this.#stopScreenRecording(screenRecording, { discarded: true }).catch((error) => {
+        this.#debug("recording_stop_failed", { reason: error?.message });
+      });
       this.silent = previousSilent;
     }
   }
@@ -505,6 +518,41 @@ export class Automify {
   async #captureRawScreenshot(context, options) {
     let screenshot = await this.computer.screenshot(context);
     return this.#redactScreenshot(screenshot, context, options);
+  }
+
+  async #startScreenRecording(context, options, trace) {
+    const screenRecording = screenRecordingFor(options, this);
+    if (!screenRecording) return null;
+
+    const recording = await startScreenRecording(screenRecording, {
+      ...context,
+      captureFrame: (frameContext) => this.#captureRawScreenshot(frameContext, options)
+    });
+    this.#debug("recording_start", {
+      path: recording.path,
+      framesDir: recording.framesDir,
+      fps: recording.fps
+    });
+    trace?.({
+      type: "recording_start",
+      path: recording.path,
+      fps: recording.fps
+    });
+    return recording;
+  }
+
+  async #stopScreenRecording(recording, context, trace) {
+    if (!recording || recording.stopped) return null;
+    recording.stopped = true;
+    const result = await recording.stop(context);
+    if (!result) return null;
+
+    this.#debug("recording_stop", result);
+    trace?.({
+      type: "recording_stop",
+      ...result
+    });
+    return result;
   }
 
   #computerTool(options) {
@@ -824,6 +872,17 @@ function finalScreenshotPathFor(options, automify) {
 
 function actionScreenshotsPathFor(options, automify) {
   return resolveScreenshotPath(options.actionScreenshots ?? automify.actionScreenshots);
+}
+
+function screenRecordingFor(options, automify) {
+  return options.screenRecording ?? automify.screenRecording;
+}
+
+function screenRecordingPathFor(options, automify) {
+  const recording = screenRecordingFor(options, automify);
+  if (typeof recording === "string") return recording;
+  if (recording && typeof recording === "object" && typeof recording.path === "string") return recording.path;
+  return null;
 }
 
 function resolveScreenshotPath(value) {

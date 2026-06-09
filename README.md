@@ -34,6 +34,7 @@ OpenAI and Anthropic models are supported, and any other model can be plugged in
 - One `.do()` loop: give the model a task, let it request actions, return a structured result.
 - Step-by-step task builders for longer workflows that should read like a checklist.
 - Structured task input with `data` and structured output with `jsonOutput()`.
+- Screen recording for browser and desktop-style computer runs.
 - Built-in OpenAI and Anthropic support, plus custom model adapters.
 - Practical guardrails: domain allowlists, command policies, screenshot controls, max steps, and hooks.
 
@@ -464,6 +465,34 @@ also work: `step()`, `wait()`, `observe()`, `extract()`, and `assert()`.
 - `jsonOutput()` requests structured JSON and makes parsed output available as `run.parsed`.
 - `limits.steps` controls the maximum model-action turns before `MaxStepsExceededError`. The default is `100`.
 
+Visual adapters can record a run by polling screenshots and encoding them with `ffmpeg`:
+
+```js
+const run = await browser.do("Run the checkout smoke test.", {
+  recording: "/tmp/automify-checkout.mp4"
+});
+
+console.log(run.recording.path);
+```
+
+Use `recording` or `screenRecording`. Pass a string for the output path, `true` to write a temp MP4, or an object when
+you need control over capture rate and encoding:
+
+```js
+const run = await browser.do("Run the checkout smoke test.", {
+  screenRecording: {
+    path: "/tmp/automify-checkout.mp4",
+    fps: 6,
+    keepFrames: false
+  }
+});
+
+console.log(run.recording.frames);
+```
+
+Recording works for browser and computer-use adapters. CLI adapters do not produce screen recordings. The host process
+needs `ffmpeg` on PATH unless you pass `screenRecording.ffmpegCommand` or a custom `screenRecording.execFile`.
+
 Set max steps on an adapter when most runs need the same limit:
 
 ```js
@@ -589,13 +618,13 @@ Pass `{ parse: false }` if you want Automify to request the Zod-derived JSON Sch
 
 Before running computer use against real accounts or user data:
 
-| Area    | Recommendation                                                                                            |
-| ------- | --------------------------------------------------------------------------------------------------------- |
-| Scope   | Use dedicated accounts, narrow browser allowlists, command policies, and isolated desktops or containers. |
-| Data    | Pass task input through `data`; request application output with `jsonOutput()` instead of parsing prose.  |
-| Safety  | Add human approval for sensitive CLI commands, browser actions, or externally visible operations.         |
-| Privacy | Redact screenshots before model upload when screens can contain secrets or regulated data.                |
-| Audit   | Use `hooks`, `screenshots.actions`, `logFile`, and `trace: true` for workflows that need review.          |
+| Area    | Recommendation                                                                                                |
+| ------- | ------------------------------------------------------------------------------------------------------------- |
+| Scope   | Use dedicated accounts, narrow browser allowlists, command policies, and isolated desktops or containers.     |
+| Data    | Pass task input through `data`; request application output with `jsonOutput()` instead of parsing prose.      |
+| Safety  | Add human approval for sensitive CLI commands, browser actions, or externally visible operations.             |
+| Privacy | Redact screenshots before model upload when screens can contain secrets or regulated data.                    |
+| Audit   | Use `hooks`, `screenshots.actions`, `recording`, `logFile`, and `trace: true` for workflows that need review. |
 
 ## Providers
 

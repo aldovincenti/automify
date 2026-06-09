@@ -119,6 +119,51 @@ test("task builder composes ordered step instructions and delegates to do", asyn
   assert.match(text, /"accountId": "acct_123"/);
 });
 
+test("do records the screen when recording options are provided", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "automify-recording-"));
+  const recordingPath = join(dir, "run.mp4");
+  const ffmpegCalls = [];
+  const automify = createAutomify({
+    client: {
+      async createResponse() {
+        return { id: "resp_done", output: [] };
+      }
+    },
+    model: "test-computer-model",
+    computer: {
+      displayWidth: 800,
+      displayHeight: 600,
+      environment: "browser",
+      execute() {},
+      screenshot() {
+        return Buffer.from("fake-png");
+      }
+    }
+  });
+
+  try {
+    const result = await automify.do("Summarize page", {
+      recording: {
+        path: recordingPath,
+        fps: 2,
+        captureIntervalMs: 10,
+        execFile: async (command, args) => {
+          ffmpegCalls.push({ command, args });
+          await writeFile(args.at(-1), Buffer.from("video"));
+        }
+      }
+    });
+
+    assert.equal(result.recording.path, recordingPath);
+    assert.equal(result.recording.bytes, 5);
+    assert.ok(result.recording.frames >= 1);
+    assert.equal(ffmpegCalls.length, 1);
+    assert.equal(ffmpegCalls[0].command, "ffmpeg");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("Automify writes computer run events to logFile", async () => {
   const dir = await mkdtemp(join(tmpdir(), "automify-computer-logs-"));
   const logFile = join(dir, "computer.jsonl");

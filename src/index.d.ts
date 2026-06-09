@@ -13,6 +13,7 @@ export type ComputerAction =
   | { type: string; [key: string]: unknown };
 
 export type Screenshot = string | ArrayBuffer | Uint8Array | Buffer;
+export type ScreenRecordingInput = boolean | string | ScreenRecordingOptions;
 export type DomainRule = string | RegExp | ((url: URL) => boolean);
 export type CommandRule = string | RegExp | ((command: string) => boolean);
 export type DebugLogger = boolean | ((message: string, details?: unknown) => void);
@@ -88,6 +89,30 @@ export interface JsonOutputOptions {
   parse?: boolean;
 }
 
+export interface ScreenRecordingOptions {
+  enabled?: boolean;
+  path?: string;
+  fps?: number;
+  intervalMs?: number;
+  captureIntervalMs?: number;
+  framesDir?: string;
+  keepFrames?: boolean;
+  ffmpegCommand?: string;
+  command?: string;
+  encodingTimeoutMs?: number;
+  timeoutMs?: number;
+  execFile?: (...args: unknown[]) => Promise<unknown> | unknown;
+}
+
+export interface ScreenRecordingResult {
+  path: string;
+  bytes?: number;
+  frames?: number;
+  fps?: number;
+  startedAt?: string;
+  stoppedAt?: string;
+}
+
 export function jsonOutput(
   name: string,
   shape: JsonOutputShape | Record<string, unknown>,
@@ -142,6 +167,8 @@ export interface AutomifyOptions {
   finalScreenshot?: string;
   actionScreenshots?: string;
   screenshots?: DoScreenshotsOptions;
+  recording?: ScreenRecordingInput;
+  screenRecording?: ScreenRecordingInput;
   trace?: boolean;
   silent?: boolean;
   debug?: DebugLogger;
@@ -639,6 +666,8 @@ export interface InitAutomifyOptions {
   finalScreenshot?: string;
   actionScreenshots?: string;
   screenshots?: DoScreenshotsOptions;
+  recording?: ScreenRecordingInput;
+  screenRecording?: ScreenRecordingInput;
   trace?: boolean;
   silent?: boolean;
   debug?: DebugLogger;
@@ -678,6 +707,8 @@ export interface DoOptions {
   finalScreenshot?: string;
   actionScreenshots?: string;
   screenshots?: DoScreenshotsOptions;
+  recording?: ScreenRecordingInput;
+  screenRecording?: ScreenRecordingInput;
   trace?: boolean;
   silent?: boolean;
   onSafetyCheck?: (event: {
@@ -698,6 +729,7 @@ export interface DoScreenshotsOptions {
   final?: string;
   actions?: string;
   actionScreenshots?: string;
+  recording?: ScreenRecordingInput;
 }
 
 export interface DoScreenshotOptions {
@@ -756,6 +788,7 @@ export interface AutomifyResult {
     path: string;
     bytes?: number;
   };
+  recording?: ScreenRecordingResult;
 }
 
 export interface AutomifyCompleteEvent {

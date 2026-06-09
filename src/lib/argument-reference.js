@@ -11,10 +11,11 @@ export const argumentReference = [
       "hooks",
       "screenshots",
       "screenshot",
+      "recording",
       "command"
     ],
     notes:
-      "Use data for structured JSON, evaluate for files the model should inspect directly, limits.steps to change the max model-action turns, and command only on CLI surfaces."
+      "Use data for structured JSON, evaluate for files the model should inspect directly, limits.steps to change the max model-action turns, recording to save visual runs with ffmpeg, and command only on CLI surfaces."
   },
   {
     surface: "automify.browser()",
