@@ -208,6 +208,12 @@ export interface LocalDesktopComputerOptions {
   instructions?: string;
   screenshotPath?: string;
   /**
+   * Defaults to "local-desktop", giving the local adapter an exclusive
+   * cross-process lock. Override only when you know this runner is attached to
+   * an independent desktop session or isolated test double.
+   */
+  lockResource?: string;
+  /**
    * Screenshot pixels per native mouse coordinate. On macOS Retina displays the
    * default is inferred as 2; use 1 for non-Retina external displays.
    */

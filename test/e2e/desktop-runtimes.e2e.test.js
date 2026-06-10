@@ -123,6 +123,7 @@ test("e2e: local desktop adapter drives the model loop with a native dependency 
   const nut = makeNut(events);
   const computer = await createLocalDesktopComputer({
     nut,
+    lockResource: "local-desktop:e2e-native-shim",
     macosDisplayInfo: false,
     calibrateScreenshot: false,
     actionDelayMs: 0
@@ -215,6 +216,7 @@ test("e2e: local desktop starts and closes Xvfb on Linux headless hosts", async 
   const computer = await createLocalDesktopComputer({
     nut: makeNut(events),
     env,
+    lockResource: "local-desktop:e2e-xvfb",
     forceVirtualDisplay: true,
     calibrateScreenshot: false,
     virtualDisplayStartupMs: 0,

@@ -121,6 +121,22 @@ test("createLocalDesktopComputer prevents concurrent local desktop adapters", as
   await second.close();
 });
 
+test("createLocalDesktopComputer can isolate locks for independent desktop resources", async () => {
+  const first = await createLocalDesktopComputer({
+    nut: makeNut([]),
+    lockResource: "local-desktop:test-resource-a",
+    macosDisplayInfo: false
+  });
+  const second = await createLocalDesktopComputer({
+    nut: makeNut([]),
+    lockResource: "local-desktop:test-resource-b",
+    macosDisplayInfo: false
+  });
+
+  await first.close();
+  await second.close();
+});
+
 test("createLocalDesktopComputer releases the lock when setup fails", async () => {
   const brokenNut = makeNut([]);
   brokenNut.screen.capture = async () => {

@@ -105,15 +105,15 @@ export const argumentReference = [
   },
   {
     surface: "automify.localComputer()",
-    preferred: ["viewport", "mouse", "keyboard", "calibration", "virtualDisplay", "logFile"],
+    preferred: ["viewport", "mouse", "keyboard", "calibration", "virtualDisplay", "lockResource", "logFile"],
     notes:
-      "Creates a local desktop runner and takes an exclusive cross-process lock until close(). Linux local desktop requires X11/Xorg or Xvfb; Wayland is not supported. Use logFile to capture automation and local desktop events."
+      "Creates a local desktop runner and takes an exclusive cross-process lock until close(). Linux local desktop requires X11/Xorg or Xvfb; Wayland is not supported. Use lockResource only for independent desktop sessions or isolated tests. Use logFile to capture automation and local desktop events."
   },
   {
     surface: "createLocalDesktopComputer()",
-    preferred: ["viewport", "mouse", "keyboard", "calibration", "virtualDisplay", "logFile"],
+    preferred: ["viewport", "mouse", "keyboard", "calibration", "virtualDisplay", "lockResource", "logFile"],
     notes:
-      "Grouped mouse, keyboard, and calibration options are preferred over the older flat names. Linux local desktop requires X11/Xorg or Xvfb; Wayland is not supported. Use logFile to capture local desktop events. Local desktop control takes an exclusive cross-process lock until close()."
+      "Grouped mouse, keyboard, and calibration options are preferred over the older flat names. Linux local desktop requires X11/Xorg or Xvfb; Wayland is not supported. Local desktop control takes an exclusive cross-process lock until close(); use lockResource only for independent desktop sessions or isolated tests. Use logFile to capture local desktop events."
   },
   {
     surface: "createDockerDesktopComputer()",

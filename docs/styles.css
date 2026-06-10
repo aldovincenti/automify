@@ -459,11 +459,12 @@ h1 {
 
 .install-os-panel {
   display: grid;
-  align-content: center;
+  align-content: start;
   gap: 12px;
   padding: 18px;
   background: var(--panel-strong);
   box-shadow: var(--shadow);
+  text-align: center;
 }
 
 .install-os-panel strong {

@@ -29,6 +29,7 @@ const LOCAL_DESKTOP_OPTION_KEYS = new Set([
   "actionDelayMs",
   "instructions",
   "screenshotPath",
+  "lockResource",
   "pixelScale",
   "mouseScaleX",
   "mouseScaleY",
@@ -145,7 +146,7 @@ const DEFAULT_DESKTOP_INSTRUCTIONS = [
 
 export async function createLocalDesktopComputer(options = {}) {
   options = normalizeLocalDesktopOptions(options);
-  const releaseLock = await acquireAdapterLock("local-desktop", {
+  const releaseLock = await acquireAdapterLock(options.lockResource ?? "local-desktop", {
     label: "local desktop adapter"
   });
   const setupStartedAt = Date.now();
