@@ -120,7 +120,7 @@ brew install qemu
 # Install QEMU from https://www.qemu.org/download/
 ```
 
-Pre-warm or refresh the default QEMU Debian cache:
+Pre-warm or refresh QEMU image caches:
 
 ```bash
 # Pre-warm the minimal QEMU CLI cache.
@@ -131,7 +131,14 @@ npx automify-qemu-image --desktop
 
 # Re-download the Debian base image and rebuild the prepared cache.
 npx automify-qemu-image --force-download
+
+# Pre-warm an alternate qcow2 URL into its own cache.
+npx automify-qemu-image \
+  --image-url https://example.com/path/linux.qcow2 \
+  --cache-dir ~/.cache/automify/qemu-custom
 ```
+
+Use `--image-url` for an alternate apt-based Linux cloud qcow2 that Automify should download, boot, and prepare. Use the same URL and cache directory at runtime with `vm.imageUrl` or `qemuImageUrl` plus `defaultImageCache`. If you pass a local disk with `image` or `vm.image`, Automify uses that qcow2 directly instead of preparing it; the image must already boot, accept SSH, and include the desktop packages required for virtual desktop runs.
 
 ## Quick Start
 
@@ -283,6 +290,19 @@ try {
 } finally {
   await cli.close();
 }
+```
+
+To reuse an alternate qcow2 URL that you pre-warmed with `automify-qemu-image --image-url`, pass the same URL and cache directory:
+
+```js
+const cli = automify.virtualCli({
+  vm: {
+    imageUrl: "https://example.com/path/linux.qcow2"
+  },
+  defaultImageCache: {
+    dir: "/var/cache/automify-qemu-custom"
+  }
+});
 ```
 
 ### Desktop Computer Use
@@ -759,7 +779,7 @@ RUN_OPENAI_QEMU_DESKTOP_E2E=1 \
 node --test test/e2e/live-openai.e2e.test.js
 ```
 
-Use `AUTOMIFY_QEMU_DEFAULT_IMAGE_URL` to point the default Debian download at a mirror, and `AUTOMIFY_QEMU_IMAGE_CACHE_DIR` to choose the cache directory. By default, Automify caches the downloaded Debian base image and prepared Automify-ready Debian images on the user's computer. The CLI cache stays minimal; the desktop cache is a separate variant that bakes Xvfb/openbox/xterm/xdotool/scrot so warm desktop boots do not reinstall apt packages. Configure image caching with `defaultImageCache`, for example `defaultImageCache: { dir: "/var/cache/automify-qemu", forcePrepare: true }`. Run `npx automify-qemu-image` to pre-warm the QEMU CLI cache. Run `npx automify-qemu-image --desktop` to pre-warm the QEMU desktop cache. Run `npx automify-qemu-image --force-download` to replace the cached base image and rebuild the prepared image. On ARM hosts Automify auto-detects common QEMU UEFI firmware paths; set `AUTOMIFY_QEMU_FIRMWARE` if your QEMU install keeps the firmware elsewhere.
+Use `AUTOMIFY_QEMU_DEFAULT_IMAGE_URL` to point the default Debian download at a mirror, and `AUTOMIFY_QEMU_IMAGE_CACHE_DIR` to choose the cache directory. By default, Automify caches the downloaded Debian base image and prepared Automify-ready Debian images on the user's computer. The CLI cache stays minimal; the desktop cache is a separate variant that bakes Xvfb/openbox/xterm/xdotool/scrot so warm desktop boots do not reinstall apt packages. Configure image caching with `defaultImageCache`, for example `defaultImageCache: { dir: "/var/cache/automify-qemu", forcePrepare: true }`. Run `npx automify-qemu-image` to pre-warm the QEMU CLI cache. Run `npx automify-qemu-image --desktop` to pre-warm the QEMU desktop cache. Run `npx automify-qemu-image --image-url https://example.com/path/linux.qcow2 --cache-dir /var/cache/automify-qemu-custom` to pre-warm an alternate cloud qcow2 cache, then use the same URL and cache directory at runtime with `vm.imageUrl` or `qemuImageUrl` plus `defaultImageCache`. Run `npx automify-qemu-image --force-download` to replace the cached base image and rebuild the prepared image. Local disks passed with `image` or `vm.image` are not prepared by the cache command; they must already be bootable with SSH access. On ARM hosts Automify auto-detects common QEMU UEFI firmware paths; set `AUTOMIFY_QEMU_FIRMWARE` if your QEMU install keeps the firmware elsewhere.
 
 ## License
 

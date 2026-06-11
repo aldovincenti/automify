@@ -146,5 +146,6 @@ Examples:
   npx automify-qemu-image --desktop  # pre-warm the QEMU desktop cache
   npx automify-qemu-image --force-download
   npx automify-qemu-image --cache-dir ${root}/.automify-qemu-cache
+  npx automify-qemu-image --image-url https://example.com/path/linux.qcow2 --cache-dir ${root}/.automify-qemu-custom
 `);
 }
