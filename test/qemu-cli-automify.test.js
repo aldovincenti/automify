@@ -9,6 +9,7 @@ import { test } from "node:test";
 import { createVirtualCliAutomify, QemuCliSession } from "../src/index.js";
 import {
   buildQemuArgs,
+  defaultQemuAccel,
   defaultQemuFirmware,
   ensureDefaultQemuImageCache,
   prepareDefaultQemuImage
@@ -476,6 +477,10 @@ test("QEMU runtime wires firmware and CPU settings into the VM command", () => {
 
   assert.equal(args[args.indexOf("-cpu") + 1], "host");
   assert.equal(args[args.indexOf("-bios") + 1], "/tmp/QEMU_EFI.fd");
+});
+
+test("QEMU Linux default accelerator falls back to TCG when KVM is unavailable", () => {
+  assert.equal(defaultQemuAccel({ existsSync: () => false }), process.platform === "linux" ? "tcg" : defaultQemuAccel());
 });
 
 test("QEMU firmware default honors explicit environment override", () => {

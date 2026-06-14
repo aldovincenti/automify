@@ -37,12 +37,12 @@ export function defaultQemuCommand() {
   }
 }
 
-export function defaultQemuAccel() {
+export function defaultQemuAccel(options = {}) {
   switch (process.platform) {
     case "darwin":
       return "hvf";
     case "linux":
-      return "kvm";
+      return (options.existsSync ?? existsSync)(options.kvmDevice ?? "/dev/kvm") ? "kvm" : "tcg";
     case "win32":
       return "whpx";
     default:
