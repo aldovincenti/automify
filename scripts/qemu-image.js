@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -42,6 +43,7 @@ try {
     defaultImageCache: options.defaultImageCache,
     preparedImageProfile: options.desktop ? "desktop" : undefined,
     preparedPackages: options.desktop ? uniquePackages([...DEFAULT_QEMU_DESKTOP_PACKAGES, ...options.packages]) : options.packages,
+    spawn,
     vmName: "automify-qemu-image"
   });
 
