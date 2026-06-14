@@ -475,7 +475,7 @@ async function ensurePreparedQemuImage(options = {}) {
 
     await waitForSsh(execFile, options.sshCommand ?? "ssh", sshOptions);
     await execFile(options.sshCommand ?? "ssh", sshArgs(sshOptions, preparedImageSetupCommand(options)), {
-      timeout: positiveInteger(options.timeoutMs) ?? 60_000
+      timeout: positiveInteger(options.timeoutMs) ?? 300_000
     });
     await stopQemuProcess(child, positiveInteger(options.qemuTimeoutMs) ?? 1500);
     child = null;

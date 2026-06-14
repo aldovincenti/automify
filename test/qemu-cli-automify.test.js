@@ -380,7 +380,7 @@ test("QemuCliSession uses the prepared image cache by default", async () => {
     assert.match(prepareSetup, /apt-get install -y --no-install-recommends 'coreutils'/);
     assert.equal(
       calls.find(([command, args]) => command === "ssh" && args.at(-1)?.includes?.("apt-get install"))[2].timeout,
-      120_000
+      300_000
     );
 
     const startup = calls.find(

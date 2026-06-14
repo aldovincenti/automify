@@ -34,7 +34,7 @@ const execFileAsync = promisify(execFile);
 
 const DEFAULT_CWD = "/workspace";
 const DEFAULT_TIMEOUT_MS = 30_000;
-const DEFAULT_STARTUP_TIMEOUT_MS = 120_000;
+const DEFAULT_STARTUP_TIMEOUT_MS = 300_000;
 const VIRTUAL_CLI_OPTION_KEYS = mergeOptionKeys(AUTOMIFY_OPTION_KEYS, [
   "preset",
   "command",

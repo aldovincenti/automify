@@ -54,8 +54,20 @@ try {
   }
   console.log("Automify QEMU image cache is ready.");
 } catch (error) {
-  console.error(error?.stack || error?.message || String(error));
+  printError(error);
   process.exit(1);
+}
+
+function printError(error, depth = 0) {
+  const prefix = depth === 0 ? "" : "Caused by: ";
+  console.error(`${prefix}${error?.stack || error?.message || String(error)}`);
+  for (const key of ["code", "signal", "killed"]) {
+    if (error?.[key] != null) console.error(`${prefix}${key}: ${error[key]}`);
+  }
+  for (const key of ["stdout", "stderr"]) {
+    if (error?.[key]) console.error(`${prefix}${key}:\n${String(error[key])}`);
+  }
+  if (error?.cause) printError(error.cause, depth + 1);
 }
 
 function parseArgs(argv) {
