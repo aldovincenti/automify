@@ -255,6 +255,12 @@ export class QemuDesktopSession {
 
     try {
       await this.prepareDefaultImage();
+    } catch (error) {
+      await this.close();
+      throw error;
+    }
+
+    try {
       const args = buildQemuArgs({
         ...this.options,
         name: this.name,
@@ -600,6 +606,7 @@ function normalizeVirtualDesktopOptions(options = {}) {
     additionalAptPackages: options.additionalAptPackages ?? desktop.additionalAptPackages,
     installDependencies: options.installDependencies ?? desktop.installDependencies,
     sharedFolder: options.sharedFolder ?? options.shared,
+    sharedMode: options.sharedMode ?? (process.platform === "win32" ? "none" : undefined),
     files: options.files ?? options.sharedFiles
   };
   validateStartupCommand(normalized);

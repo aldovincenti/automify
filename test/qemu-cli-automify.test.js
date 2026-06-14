@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { test } from "node:test";
@@ -80,6 +81,7 @@ test("QemuCliSession supports shared files through QEMU virtfs", async () => {
     image: "/tmp/shared-cli.qcow2",
     vmName: "automify-qemu-cli-shared",
     sshPort: 11023,
+    sharedMode: "virtfs",
     sharedFolder: {
       containerPath: "/work",
       files: [{ path: source, targetPath: "data/input.json" }]
@@ -108,6 +110,7 @@ test("QemuCliSession repo preset exposes the current workspace", async () => {
     image: "/tmp/repo-cli.qcow2",
     vm: { name: "automify-qemu-cli-preset" },
     sshPort: 11024,
+    sharedMode: "virtfs",
     execFile: async () => ({ stdout: "", stderr: "" }),
     spawn: (command, args, options) => {
       spawns.push([command, args, options]);
@@ -214,6 +217,68 @@ test("QEMU default Debian base image is cached between prepared VMs", async () =
   }
 });
 
+test("QEMU default Debian image download falls back to native IPv4 when default fetch fails", async () => {
+  const cacheDir = await mkdtemp(join(tmpdir(), "automify-qemu-download-fallback-"));
+  const imageBytes = "ipv4-fallback-qcow2";
+  const server = createServer((request, response) => {
+    response.writeHead(200, { "content-type": "application/octet-stream" });
+    response.end(imageBytes);
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  const originalFetch = globalThis.fetch;
+  let fetches = 0;
+  globalThis.fetch = async () => {
+    fetches += 1;
+    throw new TypeError("fetch failed");
+  };
+
+  try {
+    const cache = await ensureDefaultQemuImageCache({
+      cacheDir,
+      imageUrl: `http://127.0.0.1:${server.address().port}/debian.qcow2`,
+      defaultImageCache: false
+    });
+
+    assert.equal(fetches, 1);
+    assert.equal((await stat(cache.baseImage)).size, imageBytes.length);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await rm(cacheDir, { recursive: true, force: true });
+  }
+});
+
+test("QemuCliSession preserves default image preparation errors", async () => {
+  const cacheDir = await mkdtemp(join(tmpdir(), "automify-qemu-cli-download-error-"));
+  const session = new QemuCliSession({
+    vmName: "automify-qemu-cli-download-error",
+    sshPort: 11030,
+    qemuImageCacheDir: cacheDir,
+    qemuImageUrl: "https://example.test/debian-error.qcow2",
+    defaultImageCache: false,
+    fetchImpl: async () => {
+      throw new TypeError("fetch failed");
+    },
+    execFile: async () => ({ stdout: "", stderr: "" }),
+    spawn: () => {
+      throw new Error("QEMU should not start when image preparation fails.");
+    }
+  });
+
+  try {
+    await assert.rejects(() => session.run("whoami"), {
+      message: /Failed to download the default QEMU Debian image/
+    });
+  } finally {
+    await session.close();
+    await rm(cacheDir, { recursive: true, force: true });
+  }
+});
+
 test("QEMU prepared Debian image cache is reused across default VM overlays", async () => {
   const cacheDir = await mkdtemp(join(tmpdir(), "automify-qemu-prepared-cache-"));
   const calls = [];
@@ -259,7 +324,7 @@ test("QEMU prepared Debian image cache is reused across default VM overlays", as
     assert.equal(calls.filter(([command]) => command === "ssh-keygen-test").length, 1);
     assert.equal(spawns.length, 1);
     assert.equal(spawns[0][0], "qemu-system-test");
-    assert.ok(spawns[0][1].some((arg) => String(arg).startsWith("file=/")));
+    assert.ok(spawns[0][1].some((arg) => /^file=.+,if=virtio,format=qcow2$/.test(String(arg))));
     assert.ok((await stat(first.preparedImage)).size > 0);
   } finally {
     await rm(cacheDir, { recursive: true, force: true });

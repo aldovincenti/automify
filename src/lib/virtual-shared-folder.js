@@ -98,7 +98,7 @@ function normalizeRelativeTarget(value) {
   if (!normalized || normalized.startsWith("..")) {
     throw new AutomifyError(`Invalid shared file target path: ${value}`);
   }
-  return normalized;
+  return normalized.replaceAll("\\", "/");
 }
 
 function normalizeContainerPath(value) {

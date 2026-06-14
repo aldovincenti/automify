@@ -88,6 +88,7 @@ test("createVirtualDesktopComputer exposes shared folders through QEMU virtfs", 
     vmName: "automify-qemu-shared",
     startupCommand: "xterm",
     sshPort: 10024,
+    sharedMode: "virtfs",
     sharedFolder: {
       containerPath: "/shared",
       files: [{ path: source, targetPath: "docs/input.txt" }]

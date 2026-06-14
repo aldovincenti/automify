@@ -488,7 +488,7 @@ test("CliAutomify restores per-run silent override after errors", async () => {
 });
 
 test("runShellCommand executes a real command", async () => {
-  const output = await runShellCommand("printf automify", {
+  const output = await runShellCommand("node -e \"process.stdout.write('automify')\"", {
     cwd: process.cwd(),
     timeoutMs: 5000
   });

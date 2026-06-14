@@ -230,6 +230,12 @@ export class QemuCliSession {
 
     try {
       await this.prepareDefaultImage();
+    } catch (error) {
+      await this.close();
+      throw error;
+    }
+
+    try {
       const args = buildQemuArgs({
         ...this.options,
         name: this.name,
@@ -251,7 +257,7 @@ export class QemuCliSession {
       this.started = true;
       await waitForSsh(this.execFile, this.sshCommand, this.sshOptions());
       await this.runSsh(this.startupScript(), {
-        timeout: positiveInteger(this.options.timeoutMs) ?? DEFAULT_TIMEOUT_MS
+        timeout: this.startupScriptTimeoutMs()
       });
       debugVirtualCli(this.options, "vm_ready", { vmName: this.name });
     } catch (error) {
@@ -321,6 +327,13 @@ export class QemuCliSession {
       `${this.options.sudo ? "sudo -n " : ""}mkdir -p ${shellQuote(this.cwd)}`,
       startupCommand
     ].join(" && ");
+  }
+
+  startupScriptTimeoutMs() {
+    const configured = positiveInteger(this.options.timeoutMs);
+    if (configured) return configured;
+    const packages = uniquePackages([...(this.options.packages ?? []), ...(this.options.additionalAptPackages ?? [])]);
+    return packages.length > 0 && this.options.installDependencies !== false ? 300_000 : DEFAULT_TIMEOUT_MS;
   }
 
   async run(command, options = {}) {
@@ -449,6 +462,7 @@ function normalizeVirtualCliOptions(options = {}) {
     cwd,
     additionalAptPackages: options.additionalAptPackages,
     sharedFolder: options.sharedFolder ?? options.shared,
+    sharedMode: options.sharedMode ?? (process.platform === "win32" ? "none" : undefined),
     files: options.files ?? options.sharedFiles
   };
 }

@@ -2,7 +2,8 @@ import { execFile as execFileCallback } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { createWriteStream, existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rename, rm, stat } from "node:fs/promises";
-import { createServer as createHttpServer } from "node:http";
+import { createServer as createHttpServer, get as httpGet } from "node:http";
+import { get as httpsGet } from "node:https";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { createServer as createNetServer } from "node:net";
@@ -19,6 +20,8 @@ export const DEFAULT_QEMU_SSH_USER = "root";
 export const DEFAULT_QEMU_DEBIAN_RELEASE = "trixie";
 export const DEFAULT_QEMU_DEBIAN_VERSION = "13";
 export const DEFAULT_QEMU_PREPARED_IMAGE_VERSION = "v2";
+const DEFAULT_QEMU_IMAGE_DOWNLOAD_TIMEOUT_MS = 30_000;
+const MAX_QEMU_IMAGE_DOWNLOAD_REDIRECTS = 5;
 
 const execFileAsync = promisify(execFileCallback);
 
@@ -183,14 +186,16 @@ export async function prepareDefaultQemuImage(options = {}) {
 
 export async function ensureDefaultQemuImageCache(options = {}) {
   const execFile = options.execFile ?? execFileAsync;
-  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  const hasCustomFetch = typeof options.fetchImpl === "function";
+  const fetchImpl = hasCustomFetch ? options.fetchImpl : globalThis.fetch;
   const imageUrl = options.imageUrl ?? process.env.AUTOMIFY_QEMU_DEFAULT_IMAGE_URL ?? defaultQemuImageUrl();
   const cacheOptions = normalizeDefaultImageCache(options.defaultImageCache, options);
   const baseImage = options.baseImage ?? join(cacheOptions.imageCacheDir, basename(new URL(imageUrl).pathname));
 
   await ensureDefaultQemuBaseImage(baseImage, imageUrl, {
     fetchImpl,
-    forceDownload: cacheOptions.forceDownload
+    forceDownload: cacheOptions.forceDownload,
+    nativeDownloadFallback: !hasCustomFetch
   });
 
   if (!cacheOptions.prepared) {
@@ -565,6 +570,26 @@ async function downloadFile(url, targetPath, options = {}) {
     throw new AutomifyError("Default QEMU Debian image download requires a fetch implementation.");
   }
 
+  try {
+    await downloadFileWithFetch(fetchImpl, url, targetPath);
+    return;
+  } catch (error) {
+    if (!options.nativeDownloadFallback) throw error;
+    try {
+      await downloadFileWithHttp(url, targetPath, {
+        family: 4,
+        timeoutMs: options.downloadTimeoutMs
+      });
+      return;
+    } catch (fallbackError) {
+      throw new AutomifyError("Default QEMU Debian image download failed with fetch and IPv4 fallback.", {
+        cause: fallbackError
+      });
+    }
+  }
+}
+
+async function downloadFileWithFetch(fetchImpl, url, targetPath) {
   const response = await fetchImpl(url);
   if (!response?.ok) {
     throw new AutomifyError(`Default QEMU Debian image download failed with HTTP ${response?.status ?? "error"}.`);
@@ -575,6 +600,51 @@ async function downloadFile(url, targetPath, options = {}) {
 
   const body = typeof response.body.getReader === "function" ? Readable.fromWeb(response.body) : response.body;
   await pipeline(body, createWriteStream(targetPath));
+}
+
+async function downloadFileWithHttp(url, targetPath, options = {}, redirectCount = 0) {
+  if (redirectCount > MAX_QEMU_IMAGE_DOWNLOAD_REDIRECTS) {
+    throw new AutomifyError("Default QEMU Debian image download followed too many redirects.");
+  }
+
+  const parsed = new URL(url);
+  const get = parsed.protocol === "https:" ? httpsGet : parsed.protocol === "http:" ? httpGet : null;
+  if (!get) {
+    throw new AutomifyError(`Default QEMU Debian image download does not support ${parsed.protocol} URLs.`);
+  }
+
+  await new Promise((resolve, reject) => {
+    const request = get(
+      parsed,
+      {
+        family: options.family,
+        timeout: positiveInteger(options.timeoutMs) ?? DEFAULT_QEMU_IMAGE_DOWNLOAD_TIMEOUT_MS,
+        headers: {
+          "user-agent": "automify/qemu-image"
+        }
+      },
+      (response) => {
+        const statusCode = response.statusCode ?? 0;
+        const location = response.headers.location;
+        if (statusCode >= 300 && statusCode < 400 && location) {
+          response.resume();
+          resolve(downloadFileWithHttp(new URL(location, parsed).href, targetPath, options, redirectCount + 1));
+          return;
+        }
+        if (statusCode < 200 || statusCode >= 300) {
+          response.resume();
+          reject(new AutomifyError(`Default QEMU Debian image download failed with HTTP ${statusCode || "error"}.`));
+          return;
+        }
+
+        pipeline(response, createWriteStream(targetPath)).then(resolve, reject);
+      }
+    );
+    request.on("error", reject);
+    request.setTimeout(positiveInteger(options.timeoutMs) ?? DEFAULT_QEMU_IMAGE_DOWNLOAD_TIMEOUT_MS, () => {
+      request.destroy(new AutomifyError("Default QEMU Debian image download timed out."));
+    });
+  });
 }
 
 async function createNoCloudServer(options = {}) {
