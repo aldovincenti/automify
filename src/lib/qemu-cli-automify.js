@@ -16,6 +16,7 @@ import {
 import { prepareVirtualSharedFolder } from "./virtual-shared-folder.js";
 import {
   buildQemuArgs,
+  DEFAULT_QEMU_PREPARE_TIMEOUT_MS,
   defaultQemuCommand,
   getAvailablePort,
   installCommand,
@@ -34,6 +35,7 @@ const execFileAsync = promisify(execFile);
 
 const DEFAULT_CWD = "/workspace";
 const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_STARTUP_DEPENDENCY_TIMEOUT_MS = 300_000;
 const VIRTUAL_CLI_OPTION_KEYS = mergeOptionKeys(AUTOMIFY_OPTION_KEYS, [
   "preset",
   "command",
@@ -195,6 +197,7 @@ export class QemuCliSession {
     this.originalSshKeyPath = options.sshKeyPath;
     this.originalSudo = options.sudo;
     this.defaultImage = null;
+    this.preparedPackages = new Set();
     this.usesDefaultImage = !this.image && !options.existingVM;
     this.name = options.vmName ?? `automify-vm-cli-${randomUUID()}`;
     this.cwd = normalizeGuestPath(options.cwd, DEFAULT_CWD);
@@ -294,13 +297,15 @@ export class QemuCliSession {
       sshPort: this.sshPort,
       sshTimeoutMs: this.options.sshTimeoutMs,
       startupTimeoutMs: this.options.startupTimeoutMs,
-      timeoutMs: this.options.timeoutMs,
+      timeoutMs: this.prepareImageTimeoutMs(),
       qemuTimeoutMs: this.options.qemuTimeoutMs,
       createCloudInitServer: this.options.createCloudInitServer,
+      preparedPackages: this.options.installDependencies === false ? [] : this.dependencyPackages(),
       spawn: this.spawn,
       vmName: this.name
     });
     this.defaultImage = prepared;
+    this.preparedPackages = new Set(prepared.preparedPackages ?? []);
     this.image = prepared.image;
     this.options = {
       ...this.options,
@@ -319,7 +324,7 @@ export class QemuCliSession {
   }
 
   startupScript() {
-    const packages = uniquePackages([...(this.options.packages ?? []), ...(this.options.additionalAptPackages ?? [])]);
+    const packages = this.dependencyPackages().filter((pkg) => !this.preparedPackages.has(pkg));
     const startupCommand = this.options.startupCommand ?? ":";
     return [
       installCommand(packages, this.options),
@@ -329,11 +334,21 @@ export class QemuCliSession {
     ].join(" && ");
   }
 
+  dependencyPackages() {
+    return uniquePackages([...(this.options.packages ?? []), ...(this.options.additionalAptPackages ?? [])]);
+  }
+
   startupScriptTimeoutMs() {
-    const configured = positiveInteger(this.options.timeoutMs);
+    const configured = positiveInteger(this.options.startupTimeoutMs);
     if (configured) return configured;
-    const packages = uniquePackages([...(this.options.packages ?? []), ...(this.options.additionalAptPackages ?? [])]);
-    return packages.length > 0 && this.options.installDependencies !== false ? 300_000 : DEFAULT_TIMEOUT_MS;
+    const packages = this.dependencyPackages().filter((pkg) => !this.preparedPackages.has(pkg));
+    return packages.length > 0 && this.options.installDependencies !== false
+      ? DEFAULT_STARTUP_DEPENDENCY_TIMEOUT_MS
+      : DEFAULT_TIMEOUT_MS;
+  }
+
+  prepareImageTimeoutMs() {
+    return positiveInteger(this.options.startupTimeoutMs) ?? DEFAULT_QEMU_PREPARE_TIMEOUT_MS;
   }
 
   async run(command, options = {}) {
@@ -398,6 +413,7 @@ export class QemuCliSession {
     }
     await this.defaultImage?.close();
     this.defaultImage = null;
+    this.preparedPackages = new Set();
     if (this.usesDefaultImage) {
       this.image = null;
       this.options = {

@@ -162,7 +162,7 @@ const automify = initAutomify({
 
 const cli = automify.virtualCli({
   vm: { memory: "2g", cpus: 2 },
-  additionalAptPackages: ["coreutils"],
+  additionalAptPackages: ["coreutils", "nodejs"],
   shared: { hostPath: process.cwd(), containerPath: "/workspace" }
 });
 
