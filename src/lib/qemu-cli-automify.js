@@ -16,6 +16,7 @@ import {
 import { prepareVirtualSharedFolder } from "./virtual-shared-folder.js";
 import {
   buildQemuArgs,
+  DEFAULT_QEMU_PREPARE_TIMEOUT_MS,
   defaultQemuCommand,
   getAvailablePort,
   installCommand,
@@ -34,7 +35,7 @@ const execFileAsync = promisify(execFile);
 
 const DEFAULT_CWD = "/workspace";
 const DEFAULT_TIMEOUT_MS = 30_000;
-const DEFAULT_STARTUP_TIMEOUT_MS = 300_000;
+const DEFAULT_STARTUP_TIMEOUT_MS = DEFAULT_QEMU_PREPARE_TIMEOUT_MS;
 const VIRTUAL_CLI_OPTION_KEYS = mergeOptionKeys(AUTOMIFY_OPTION_KEYS, [
   "preset",
   "command",

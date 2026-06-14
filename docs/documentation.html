@@ -137,6 +137,9 @@ npx automify-qemu-image
 # Pre-warm a QEMU CLI cache for examples that need Node.js in the VM.
 npx automify-qemu-image --package coreutils --package nodejs
 
+# Use a larger timeout on slow hardware or slow package mirrors.
+npx automify-qemu-image --package nodejs --timeout-ms 1200000
+
 # Pre-warm the QEMU desktop cache with Xvfb/openbox/xterm/xdotool/scrot.
 npx automify-qemu-image --desktop
 
@@ -1763,7 +1766,8 @@ node --test test/e2e/live-openai.e2e.test.js</code></pre>
             packages. Configure image caching with `defaultImageCache`, for example `defaultImageCache: { dir:
             "/var/cache/automify-qemu", forcePrepare: true }`. Run `npx automify-qemu-image` to pre-warm the minimal QEMU
             CLI cache, or add flags such as `--package coreutils --package nodejs` to pre-warm a package-specific CLI
-            cache. Run `npx automify-qemu-image --desktop` to pre-warm the QEMU desktop cache. Run `npx
+            cache. The default preparation timeout is generous, but `--timeout-ms 1200000` can help on slow hardware or
+            package mirrors. Run `npx automify-qemu-image --desktop` to pre-warm the QEMU desktop cache. Run `npx
             automify-qemu-image --image-url
             https://example.com/path/linux.qcow2 --cache-dir /var/cache/automify-qemu-custom` to pre-warm an alternate
             cloud qcow2 cache, then use the same URL and cache directory at runtime with `vm.imageUrl` or

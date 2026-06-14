@@ -43,6 +43,8 @@ try {
     defaultImageCache: options.defaultImageCache,
     preparedImageProfile: options.desktop ? "desktop" : undefined,
     preparedPackages: options.desktop ? uniquePackages([...DEFAULT_QEMU_DESKTOP_PACKAGES, ...options.packages]) : options.packages,
+    startupTimeoutMs: options.timeoutMs,
+    timeoutMs: options.timeoutMs,
     spawn,
     vmName: "automify-qemu-image"
   });
@@ -114,6 +116,9 @@ function parseArgs(argv) {
       case "--qemu-img-command":
         result.qemuImgCommand = requiredValue(argv, ++index, arg);
         break;
+      case "--timeout-ms":
+        result.timeoutMs = positiveIntegerOption(requiredValue(argv, ++index, arg), arg);
+        break;
       default:
         console.error(`Unknown option: ${arg}`);
         printHelp();
@@ -137,6 +142,15 @@ function requiredValue(argv, index, flag) {
   return value;
 }
 
+function positiveIntegerOption(value, flag) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) {
+    console.error(`${flag} must be a positive number of milliseconds.`);
+    process.exit(1);
+  }
+  return Math.floor(number);
+}
+
 function printHelp() {
   console.log(`Usage: npx automify-qemu-image [options]
 
@@ -155,11 +169,13 @@ Options:
   --image-url <url>       Override the default Debian qcow2 URL
   --qemu <command>        Override qemu-system command
   --qemu-img <command>    Override qemu-img command
+  --timeout-ms <ms>       Override QEMU SSH/setup timeout for preparing images
   --help                  Show this help
 
 Examples:
   npx automify-qemu-image            # pre-warm the QEMU CLI cache
   npx automify-qemu-image --package coreutils --package nodejs
+  npx automify-qemu-image --package nodejs --timeout-ms 1200000
   npx automify-qemu-image --desktop  # pre-warm the QEMU desktop cache
   npx automify-qemu-image --force-download
   npx automify-qemu-image --cache-dir ${root}/.automify-qemu-cache

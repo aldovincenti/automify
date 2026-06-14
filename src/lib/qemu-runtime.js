@@ -19,6 +19,7 @@ export const DEFAULT_QEMU_SSH_USER = "root";
 export const DEFAULT_QEMU_DEBIAN_RELEASE = "trixie";
 export const DEFAULT_QEMU_DEBIAN_VERSION = "13";
 export const DEFAULT_QEMU_PREPARED_IMAGE_VERSION = "v2";
+export const DEFAULT_QEMU_PREPARE_TIMEOUT_MS = 900_000;
 
 const execFileAsync = promisify(execFileCallback);
 
@@ -475,7 +476,7 @@ async function ensurePreparedQemuImage(options = {}) {
 
     await waitForSsh(execFile, options.sshCommand ?? "ssh", sshOptions);
     await execFile(options.sshCommand ?? "ssh", sshArgs(sshOptions, preparedImageSetupCommand(options)), {
-      timeout: positiveInteger(options.timeoutMs) ?? 300_000
+      timeout: positiveInteger(options.timeoutMs) ?? DEFAULT_QEMU_PREPARE_TIMEOUT_MS
     });
     await stopQemuProcess(child, positiveInteger(options.qemuTimeoutMs) ?? 1500);
     child = null;

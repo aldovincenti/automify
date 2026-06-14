@@ -198,7 +198,7 @@ sudo usermod -aG docker $USER</code></pre>
                 <button
                   class="copy-button"
                   type="button"
-                  data-copy="# Only for optional QEMU virtual CLI and virtual desktop support\n# Linux: sudo apt-get install -y qemu-system qemu-utils\n# macOS: brew install qemu\n# Windows: install QEMU from https://www.qemu.org/download/\n\n# Pre-warm the minimal QEMU CLI cache.\nnpx automify-qemu-image\n\n# Pre-warm a QEMU CLI cache for examples that need Node.js in the VM.\nnpx automify-qemu-image --package coreutils --package nodejs\n\n# Pre-warm the QEMU desktop cache with Xvfb/openbox/xterm/xdotool/scrot.\nnpx automify-qemu-image --desktop\n\n# Pre-warm an alternate qcow2 URL into its own cache.\nnpx automify-qemu-image --image-url https://example.com/path/linux.qcow2 --cache-dir ~/.cache/automify/qemu-custom"
+                  data-copy="# Only for optional QEMU virtual CLI and virtual desktop support\n# Linux: sudo apt-get install -y qemu-system qemu-utils\n# macOS: brew install qemu\n# Windows: install QEMU from https://www.qemu.org/download/\n\n# Pre-warm the minimal QEMU CLI cache.\nnpx automify-qemu-image\n\n# Pre-warm a QEMU CLI cache for examples that need Node.js in the VM.\nnpx automify-qemu-image --package coreutils --package nodejs\n\n# Use a larger timeout on slow hardware or slow package mirrors.\nnpx automify-qemu-image --package nodejs --timeout-ms 1200000\n\n# Pre-warm the QEMU desktop cache with Xvfb/openbox/xterm/xdotool/scrot.\nnpx automify-qemu-image --desktop\n\n# Pre-warm an alternate qcow2 URL into its own cache.\nnpx automify-qemu-image --image-url https://example.com/path/linux.qcow2 --cache-dir ~/.cache/automify/qemu-custom"
                 >
                   Copy
                 </button>
@@ -213,6 +213,9 @@ npx automify-qemu-image
 
 # Pre-warm a QEMU CLI cache for examples that need Node.js in the VM.
 npx automify-qemu-image --package coreutils --package nodejs
+
+# Use a larger timeout on slow hardware or slow package mirrors.
+npx automify-qemu-image --package nodejs --timeout-ms 1200000
 
 # Pre-warm the QEMU desktop cache with Xvfb/openbox/xterm/xdotool/scrot.
 npx automify-qemu-image --desktop
