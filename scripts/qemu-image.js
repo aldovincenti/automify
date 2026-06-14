@@ -19,6 +19,8 @@ const options = parseArgs(args);
 console.log("Preparing Automify QEMU default Debian image cache.");
 if (options.desktop) {
   console.log("Desktop cache enabled: the prepared image will include the default QEMU desktop packages.");
+} else if (options.packages.length > 0) {
+  console.log("CLI cache enabled: the prepared image will include the requested apt packages.");
 } else {
   console.log("CLI cache enabled: the prepared image will stay minimal for QEMU virtual CLI runs.");
 }
@@ -39,7 +41,7 @@ try {
     imageUrl: options.imageUrl,
     defaultImageCache: options.defaultImageCache,
     preparedImageProfile: options.desktop ? "desktop" : undefined,
-    preparedPackages: options.desktop ? uniquePackages([...DEFAULT_QEMU_DESKTOP_PACKAGES, ...options.packages]) : [],
+    preparedPackages: options.desktop ? uniquePackages([...DEFAULT_QEMU_DESKTOP_PACKAGES, ...options.packages]) : options.packages,
     vmName: "automify-qemu-image"
   });
 
@@ -132,7 +134,7 @@ Options:
   --force-prepare         Rebuild only the prepared image
   --no-prepare            Download only the base Debian qcow2
   --desktop               Prepare the QEMU desktop cache variant
-  --package <name>        Add an apt package to the prepared desktop cache
+  --package <name>        Add an apt package to the prepared cache
   --cache-dir <path>      Cache root for base and prepared images
   --prepared-cache-dir <path>
                           Cache directory for prepared images
@@ -143,6 +145,7 @@ Options:
 
 Examples:
   npx automify-qemu-image            # pre-warm the QEMU CLI cache
+  npx automify-qemu-image --package coreutils --package nodejs
   npx automify-qemu-image --desktop  # pre-warm the QEMU desktop cache
   npx automify-qemu-image --force-download
   npx automify-qemu-image --cache-dir ${root}/.automify-qemu-cache

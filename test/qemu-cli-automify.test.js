@@ -101,6 +101,35 @@ test("QemuCliSession supports shared files through QEMU virtfs", async () => {
   await session.close();
 });
 
+test("QemuCliSession uses startupTimeoutMs for startup dependency installs", async () => {
+  const calls = [];
+  const session = new QemuCliSession({
+    image: "/tmp/startup-timeout-cli.qcow2",
+    vmName: "automify-qemu-cli-startup-timeout",
+    sshPort: 11028,
+    startupTimeoutMs: 123_456,
+    timeoutMs: 7,
+    additionalAptPackages: ["coreutils"],
+    execFile: async (command, args, options) => {
+      calls.push([command, args, options]);
+      return { stdout: "", stderr: "" };
+    },
+    spawn: () => fakeChild()
+  });
+
+  try {
+    await session.run("whoami");
+
+    const startup = calls.find(([, args]) => args.at(-1)?.includes?.("apt-get update"));
+    assert.equal(startup[2].timeout, 123_456);
+
+    const command = calls.find(([, args]) => args.at(-1)?.includes?.("whoami"));
+    assert.equal(command[2].timeout, 7);
+  } finally {
+    await session.close();
+  }
+});
+
 test("QemuCliSession repo preset exposes the current workspace", async () => {
   const spawns = [];
   const session = new QemuCliSession({
@@ -318,10 +347,11 @@ test("QemuCliSession uses the prepared image cache by default", async () => {
     qemuImgCommand: "qemu-img-test",
     accel: "hvf",
     sshKeygenCommand: "ssh-keygen-test",
+    additionalAptPackages: ["coreutils"],
     createCloudInitServer: async () => ({ port: 18086, close: async () => {} }),
     fetchImpl: async () => new Response("prepared-default-base"),
-    execFile: async (command, args) => {
-      calls.push([command, args]);
+    execFile: async (command, args, options) => {
+      calls.push([command, args, options]);
       if (command === "qemu-img-test") await writeFile(args.at(-1), "qcow2");
       if (command === "ssh-keygen-test") {
         await writeFile(args.at(-1), "private-key");
@@ -342,6 +372,21 @@ test("QemuCliSession uses the prepared image cache by default", async () => {
     assert.equal(spawns.at(-1)[0], "qemu-system-test");
     assert.ok(!runtimeArgs.includes("-incoming"));
     assert.ok(session.defaultImage.preparedImage.endsWith(".automify-prepared.qcow2"));
+    assert.deepEqual(session.defaultImage.preparedPackages, ["coreutils"]);
+
+    const prepareSetup = calls
+      .find(([command, args]) => command === "ssh" && args.at(-1)?.includes?.("apt-get install"))[1]
+      .at(-1);
+    assert.match(prepareSetup, /apt-get install -y --no-install-recommends 'coreutils'/);
+    assert.equal(
+      calls.find(([command, args]) => command === "ssh" && args.at(-1)?.includes?.("apt-get install"))[2].timeout,
+      120_000
+    );
+
+    const startup = calls.find(
+      ([command, args]) => command === "ssh" && args.at(-1)?.includes?.("mkdir -p '\/workspace'")
+    )[1].at(-1);
+    assert.doesNotMatch(startup, /apt-get update/);
   } finally {
     await session.close();
     await rm(cacheDir, { recursive: true, force: true });
