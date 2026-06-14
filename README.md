@@ -120,6 +120,14 @@ brew install qemu
 # Install QEMU from https://www.qemu.org/download/
 ```
 
+On Windows, the QEMU installer commonly places binaries in `C:\Program Files\qemu` without making them available in every terminal. Add that directory to your user `PATH` from PowerShell, then open a new terminal and verify both commands work:
+
+```powershell
+setx PATH "$env:PATH;C:\Program Files\qemu"
+qemu-system-x86_64 --version
+qemu-img --version
+```
+
 Pre-warm or refresh QEMU image caches:
 
 ```bash
