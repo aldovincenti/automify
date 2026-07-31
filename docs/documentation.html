@@ -78,8 +78,6 @@
             Automify requires Node.js 20.12.2 or newer. Playwright is a dependency because browser automation is a
             built-in surface, and the package postinstall step installs Chromium automatically.
           </p>
-          <pre><code># Ubuntu 26.04 only, if Playwright blocks Chromium install
-PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npm install automify</code></pre>
           <pre><code>AUTOMIFY_SKIP_BROWSER_INSTALL=1 npm install automify</code></pre>
           <p>
             Use the environment variable above when your CI image or deployment environment manages browsers separately.
@@ -619,8 +617,8 @@ await cli.do("Refactor and run tests", { maxSteps: 40 });</code></pre>
             need a stronger balance, or `gpt-5.6-luna` for high-volume, cost-sensitive work.
           </p>
           <p>
-            GPT-5.6 defaults to `medium` reasoning, matching the previous GPT-5.5 examples. Keep that as the migration
-            baseline, then compare `low` on representative tasks if latency or token use matters. Pass
+            GPT-5.6 defaults to `medium` reasoning. Use it as the initial baseline, then compare `low` on representative
+            tasks if latency or token use matters. Pass
             `reasoning: { effort: "low", summary: "concise" }` to `initAutomify()` or an individual run to override it.
             Review the
             <a href="https://developers.openai.com/api/docs/guides/latest-model">official GPT-5.6 model guidance</a>

@@ -44,9 +44,6 @@ Full docs live at [aldovincenti.github.io/automify](https://aldovincenti.github.
 
 ```bash
 npm install automify
-
-# Ubuntu 26.04 only, if Playwright blocks Chromium install
-PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 npm install automify
 ```
 
 Chromium is installed by the package `postinstall` script. Skip it with:
@@ -61,8 +58,8 @@ routes to Sol; use `gpt-5.6-terra` when cost and latency need a stronger balance
 cost-sensitive work. Override an example without editing it by setting `OPENAI_MODEL` where that example supports the
 environment variable.
 
-GPT-5.6 defaults to `medium` reasoning, matching the previous GPT-5.5 examples. Keep that as the migration baseline,
-then compare `low` on representative tasks if latency or token use matters:
+GPT-5.6 defaults to `medium` reasoning. Use it as the initial baseline, then compare `low` on representative tasks if
+latency or token use matters:
 
 ```js
 const automify = initAutomify({
