@@ -11,7 +11,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL ?? "gpt-5.5"
+    model: process.env.OPENAI_MODEL ?? "gpt-5.6-sol"
   }
 });
 

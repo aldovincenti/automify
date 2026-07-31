@@ -12,7 +12,7 @@ const shouldRunBrowserDemo = shouldRun && process.env.RUN_OPENAI_BROWSER_E2E ===
 const shouldRunDockerDesktop = shouldRun && process.env.RUN_OPENAI_DOCKER_DESKTOP_E2E === "1";
 const shouldRunQemuCli = shouldRun && process.env.RUN_OPENAI_QEMU_CLI_E2E === "1";
 const shouldRunQemuDesktop = shouldRun && process.env.RUN_OPENAI_QEMU_DESKTOP_E2E === "1";
-const liveModel = process.env.OPENAI_MODEL ?? process.env.OPENAI_TEXT_MODEL ?? "gpt-5.5";
+const liveModel = process.env.OPENAI_MODEL ?? process.env.OPENAI_TEXT_MODEL ?? "gpt-5.6-sol";
 const rootDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const liveDemoCliCommand = "node -e \"console.log('automify live cli ok')\"";
 

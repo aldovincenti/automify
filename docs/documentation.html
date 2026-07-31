@@ -176,7 +176,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -588,7 +588,7 @@ await cli.do("Refactor and run tests", { maxSteps: 40 });</code></pre>
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });</code></pre>
             </div>
@@ -611,6 +611,20 @@ await cli.do("Refactor and run tests", { maxSteps: 40 });</code></pre>
             `provider` is required in `initAutomify()`. Keep `apiKey` and `model` inside the provider object so there is
             no ambiguity about which provider owns the model string. Use direct factories such as `createAutomify()`
             only when you need the lower-level client API.
+          </p>
+          <h3>Choosing a GPT-5.6 model</h3>
+          <p>
+            The examples use the explicit `gpt-5.6-sol` model ID so logs, usage, and evaluations identify the selected
+            tier unambiguously. The `gpt-5.6` alias currently routes to Sol. Choose `gpt-5.6-terra` when cost and latency
+            need a stronger balance, or `gpt-5.6-luna` for high-volume, cost-sensitive work.
+          </p>
+          <p>
+            GPT-5.6 defaults to `medium` reasoning, matching the previous GPT-5.5 examples. Keep that as the migration
+            baseline, then compare `low` on representative tasks if latency or token use matters. Pass
+            `reasoning: { effort: "low", summary: "concise" }` to `initAutomify()` or an individual run to override it.
+            Review the
+            <a href="https://developers.openai.com/api/docs/guides/latest-model">official GPT-5.6 model guidance</a>
+            before changing model tier or reasoning effort in production.
           </p>
         </section>
 
@@ -928,7 +942,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -1030,7 +1044,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -1119,7 +1133,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -1320,7 +1334,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -1388,7 +1402,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -1503,7 +1517,7 @@ try {
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   },
   onComplete: async ({ surface, data, result, response }) => {
     await auditLog.write({
@@ -1612,7 +1626,7 @@ await browser.do("Summarize the page without leaving the allowed domain.", {
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   },
   onRequest: (payload, meta) => logRequest(payload, meta),
   onResponse: (response, meta) => logResponse(response, meta),
@@ -1669,7 +1683,7 @@ OPENAI_API_KEY=... npm run test:live</code></pre>
               <tr>
                 <th>`OPENAI_MODEL`</th>
                 <td>No</td>
-                <td>Model for live tests. Defaults to `OPENAI_TEXT_MODEL`, then `gpt-5.5`.</td>
+                <td>Model for live tests. Defaults to `OPENAI_TEXT_MODEL`, then `gpt-5.6-sol`.</td>
               </tr>
               <tr>
                 <th>`OPENAI_TEXT_MODEL`</th>

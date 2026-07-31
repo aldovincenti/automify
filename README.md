@@ -55,7 +55,28 @@ Chromium is installed by the package `postinstall` script. Skip it with:
 AUTOMIFY_SKIP_BROWSER_INSTALL=1 npm install automify
 ```
 
-Requirements: Node.js `20.12.2+` and a provider config. OpenAI examples use `gpt-5.5`.
+Requirements: Node.js `20.12.2+` and a provider config. OpenAI examples use the explicit `gpt-5.6-sol`
+model ID so logs, usage, and evaluations identify the selected tier unambiguously. The moving `gpt-5.6` alias currently
+routes to Sol; use `gpt-5.6-terra` when cost and latency need a stronger balance, or `gpt-5.6-luna` for high-volume,
+cost-sensitive work. Override an example without editing it by setting `OPENAI_MODEL` where that example supports the
+environment variable.
+
+GPT-5.6 defaults to `medium` reasoning, matching the previous GPT-5.5 examples. Keep that as the migration baseline,
+then compare `low` on representative tasks if latency or token use matters:
+
+```js
+const automify = initAutomify({
+  provider: {
+    type: "openai",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: process.env.OPENAI_MODEL ?? "gpt-5.6-sol"
+  },
+  reasoning: { effort: "low", summary: "concise" }
+});
+```
+
+See OpenAI's [GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/latest-model) before changing model
+tier or reasoning effort in production; validate quality, latency, and cost on your own automation traces.
 
 Automify is published as an ES module package, so the examples use modern `import` syntax:
 
@@ -163,7 +184,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -262,7 +283,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -354,7 +375,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -379,7 +400,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -706,7 +727,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 ```

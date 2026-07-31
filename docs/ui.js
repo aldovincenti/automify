@@ -13,7 +13,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -52,7 +52,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -111,7 +111,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -156,7 +156,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -190,7 +190,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -228,7 +228,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
@@ -272,7 +272,7 @@ const automify = initAutomify({
   provider: {
     type: "openai",
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-5.5"
+    model: "gpt-5.6-sol"
   }
 });
 
